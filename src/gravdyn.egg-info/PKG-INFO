@@ -1,3 +1,23 @@
+Metadata-Version: 2.4
+Name: gravdyn
+Version: 0.1.0
+Summary: A minimal Python package exposing a single polyhedral_approach function.
+Author-email: Safwan Aljbaae <safwan.aljbaae@gmail.com>
+License: MIT
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: numpy==2.4.4
+Requires-Dist: trimesh==4.11.5
+Requires-Dist: matplotlib==3.10.8
+Requires-Dist: plotly==6.6.0
+Requires-Dist: pytest==9.0.2
+Requires-Dist: pandas==3.0.2
+Requires-Dist: jax==0.9.2
+Requires-Dist: requests==2.33.1
+Requires-Dist: sympy==1.14.0
+Requires-Dist: dotenv==0.9.9
+Requires-Dist: scipy-stubs==1.17.1.4
+
 # GravDyn
 
 **GravDyn** is a Python package for computing gravitational fields of irregular celestial bodies using multiple modeling approaches, including point-mass, polyhedral models, and expansion-based methods.
