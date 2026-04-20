@@ -77,7 +77,7 @@ This function generates the geometric quantities required to evaluate the gravit
 These quantities correspond directly to the terms appearing in the polyhedral potential formulation, where the gravitational potential is expressed as a sum of contributions from edges and faces, involving dyadic products and geometric factors such as logarithmic edge terms and solid angles. This formulation, originally developed by Werner and widely used in asteroid dynamics, is summarized in Orbital Motion in Strongly Perturbed Environments by Daniel J. Scheeres and enables accurate computation of the gravitational field of arbitrarily shaped, constant-density bodies.
 
 #### References:
-Scheeres D. (2012) Orbital Motion in Strongly Perturbed Environments: Applications to Asteroid, Comet and Planetary Satellite Orbiters. Springer Praxis Books, Springer Berlin Heidelberg, URL https://books.google.cl/books?id=bRtJPgAACAAJ
+- Scheeres D. (2012) Orbital Motion in Strongly Perturbed Environments: Applications to Asteroid, Comet and Planetary Satellite Orbiters. Springer Praxis Books, Springer Berlin Heidelberg, URL https://books.google.cl/books?id=bRtJPgAACAAJ
 
 ---
 
@@ -104,7 +104,7 @@ The function checks whether the derivatives of the potential are already availab
 This approach follows the general idea behind the Potential Series Expansion Method. Rather than evaluating the gravitational field directly from the geometry at every step, it builds an analytical representation once and reuses it (Mota et al. 2023). The accuracy depends on the order of the expansion, but the computational cost is significantly reduced compared to the classical polyhedral method. 
 
 #### References:
-Mota M. L., Aljbaae S., and Prado A. F. B. A. The potential series expansion method: application to the asteroid (87) Sylvia.
+- Mota M. L., Aljbaae S., and Prado A. F. B. A. The potential series expansion method: application to the asteroid (87) Sylvia.
 European Physical Journal Special Topics, 232(18-19):2961–2966, December 2023
 
 ---
@@ -127,14 +127,15 @@ This function generates a layered mascon (mass concentration) model from a trian
 
 The input densities control the relative mass distribution among layers. The masses are first computed from the density values, then rescaled so that the final sum equals exactly the provided `total_mass`. Using uniform densities produces a layered discretization of a homogeneous body, while varying densities allows modeling of internal density variations.
 
-The output is a DataFrame with columns: `['x', 'y', 'z', 'mass', 'face_id', 'layer_id', 'density_input']`, containing the coordinates, masses, face associations, and layer indices for each mascon. For more details on this method and its validation, we refer the reader to XXXXX.
+The output is a DataFrame with columns: `['x', 'y', 'z', 'mass', 'face_id', 'layer_id', 'density_input']`, containing the coordinates, masses, face associations, and layer indices for each mascon. For more details on this method and its validation, we refer the reader to Chanut et al, 2017 and Aljbaae et. al, 2021.
 
 #### References:
-T. G. G. Chanut, S. Aljbaae, A. F. B. A. Prado, and V. Carruba. Dynamics in the vicinity of (101955) Bennu: solar radiation
+
+- Chanut T. G. G., Aljbaae S.,Prado A. F. B. A., and Carruba V. Dynamics in the vicinity of (101955) Bennu: solar radiation
 pressure effects in equatorial orbits. MNRAS, 470:2687–2701, September 2017. URL: https://academic.oup.com/mnras/article/470/3/2687/3829898
 
-S. Aljbaae, J. Souchay, V. Carruba, D. M. Sanchez, and A. F. B. A. Prado. Influence of Apophis’ spin axis variations on a
-spacecraft during the 2029 close approach with Earth. Romanian Astronomical Journal, 31(3):317–337, November 2021. URL: https://www.astro.ro/~roaj/31_3/20-2119apophis2b.pdf
+- Aljbaae S., Souchay J., Carruba V., Sanchez D. M., and Prado A. F. B. A. Influence of Apophis’ spin axis variations on 
+a spacecraft during the 2029 close approach with Earth. Romanian Astronomical Journal, 31(3):317–337, November 2021. URL: https://www.astro.ro/~roaj/31_3/20-2119apophis2b.pdf
 ---
 
 ### 5. Compute gravitational field
@@ -204,15 +205,7 @@ p, acc = batched_pot_mascon([1.0, 0.0, 0.0], data_shape, batch_size=20000)
 
 ---
 
-## ⚙️ Input Requirements
-
-- Vertices: shape `(N, 3)`
-- Faces: shape `(M, 3)`
-- Units must be consistent (typically km and km³/s²)
-
----
-
-## 📊 Supported Models
+## Supported Models
 
 | Model                     | Accuracy | Speed | Notes |
 |--------------------------|--------|------|------|
@@ -239,14 +232,6 @@ p, acc = batched_pot_mascon([1.0, 0.0, 0.0], data_shape, batch_size=20000)
 
 ---
 
-## 📚 References
-
-- Werner & Scheeres (1997) — Polyhedral gravity model  
-- Tsoulis (2012) — Gravitational modeling  
-- JAX documentation — https://jax.readthedocs.io  
-
----
-
 ## GUI Application
 
 GravDyn includes a graphical user interface for interactive visualization and potential field computation. Launch it with:
@@ -263,7 +248,8 @@ The GUI provides three tabs:
 
 ---
 
-## 👤 Author
+## Author
 
 Safwan Aljbaae  
 Universidad de Atacama  
+Email: safwan.aljbaae@gmail.com
