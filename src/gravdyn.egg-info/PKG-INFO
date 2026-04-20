@@ -17,6 +17,7 @@ Requires-Dist: requests==2.33.1
 Requires-Dist: sympy==1.14.0
 Requires-Dist: dotenv==0.9.9
 Requires-Dist: scipy-stubs==1.17.1.4
+Requires-Dist: python3-tk
 
 # GravDyn
 
@@ -67,12 +68,12 @@ Typical usage follows three steps:
 from gravdyn import shape_verification
 
 shape_verification(
-    asteroid_name="Apophis",       # Name of the asteroid (used for folder structure and outputs)
-    mass=5.3e10,                   # Total mass [kg]
-    density=1.75e0,                # Bulk density [kg/m^3]
-    base_dir="Data",               # Base directory containing the asteroid data
-    vertices_file="vertices.dat",  # File with vertex coordinates (N x 3)
-    faces_file="faces.dat"         # File with triangular faces (M x 3 indices)
+    asteroid_name="Apophis",                 # Name of the asteroid (used for folder structure and outputs)
+    mass=5.3e10,                             # Total mass [kg]
+    density=1.75e0,                          # Bulk density [kg/m^3]
+    base_dir="/caminho/completo/para/Data",  # Base directory containing the asteroid data
+    vertices_file="vertices.dat",            # File with vertex coordinates (N x 3)
+    faces_file="faces.dat"                   # File with triangular faces (M x 3 indices)
 )
 ```
 
@@ -86,9 +87,9 @@ This function prepares and validates a polyhedral shape model of an irregular bo
 from gravdyn import prepare_polyhedral_model
 
 data = prepare_polyhedral_model(
-    asteroid="Apophis",   # Name of the asteroid → used to locate its folder
-    base_dir="Data",      # Base directory containing shape and model files
-    verbose=True,         # If True, prints progress and file status messages
+    asteroid="Apophis",                      # Name of the asteroid → used to locate its folder
+    base_dir="/caminho/completo/para/Data",  # Base directory containing shape and model files
+    verbose=True,                            # If True, prints progress and file status messages
 ```
 
 This function generates the geometric quantities required to evaluate the gravitational field of an irregular body using the classical polyhedral formulation. The vertices and faces are loaded first. From this geometry, the function computes the centroids of the faces and edges and finds the set of edges that are related to the mesh. The geometric vectors-edge directions, face normals, and relative position vectors, that are required for the polyhedral gravity equations are then constructed as discussed in Scheeres (2012).
@@ -106,13 +107,13 @@ Scheeres D. (2012) Orbital Motion in Strongly Perturbed Environments: Applicatio
 from gravdyn import build_potential_derivatives
 
 d_exprs, d_funcs = build_potential_derivatives(
-    name_central_body="Apophis",  # Name of the central body
-    pattern="pot_*.dat",  # Pattern used to find partial potential files
-    n_files=100,  # Maximum number of potential parts to load
-    gm0=1.0,  # Gravitational parameter used in the substitution
-    lambdify_backend="jax",  # Backend used to create fast numerical functions
-    base_dir="Data",  # Root directory containing the body data
-    verbose=True,  # If True, prints progress messages
+    name_central_body="Apophis",             # Name of the central body
+    pattern="pot_*.dat",                     # Pattern used to find partial potential files
+    n_files=100,                             # Maximum number of potential parts to load
+    gm0=1.0,                                 # Gravitational parameter used in the substitution
+    lambdify_backend="jax",                  # Backend used to create fast numerical functions
+    base_dir="/caminho/completo/para/Data",  # Root directory containing the body data
+    verbose=True,                            # If True, prints progress messages
 )
 ```
 

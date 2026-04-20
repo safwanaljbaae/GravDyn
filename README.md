@@ -47,12 +47,12 @@ Typical usage follows three steps:
 from gravdyn import shape_verification
 
 shape_verification(
-    asteroid_name="Apophis",       # Name of the asteroid (used for folder structure and outputs)
-    mass=5.3e10,                   # Total mass [kg]
-    density=1.75e0,                # Bulk density [kg/m^3]
-    base_dir="Data",               # Base directory containing the asteroid data
-    vertices_file="vertices.dat",  # File with vertex coordinates (N x 3)
-    faces_file="faces.dat"         # File with triangular faces (M x 3 indices)
+    asteroid_name="Apophis",                 # Name of the asteroid (used for folder structure and outputs)
+    mass=5.3e10,                             # Total mass [kg]
+    density=1.75e0,                          # Bulk density [kg/m^3]
+    base_dir="/caminho/completo/para/Data",  # Base directory containing the asteroid data
+    vertices_file="vertices.dat",            # File with vertex coordinates (N x 3)
+    faces_file="faces.dat"                   # File with triangular faces (M x 3 indices)
 )
 ```
 
@@ -66,9 +66,10 @@ This function prepares and validates a polyhedral shape model of an irregular bo
 from gravdyn import prepare_polyhedral_model
 
 data = prepare_polyhedral_model(
-    asteroid="Apophis",   # Name of the asteroid → used to locate its folder
-    base_dir="Data",      # Base directory containing shape and model files
-    verbose=True,         # If True, prints progress and file status messages
+    asteroid="Apophis",                      # Name of the asteroid → used to locate its folder
+    base_dir="/caminho/completo/para/Data",  # Base directory containing shape and model files
+    verbose=True                             # If True, prints progress and file status messages
+)
 ```
 
 This function generates the geometric quantities required to evaluate the gravitational field of an irregular body using the classical polyhedral formulation. The vertices and faces are loaded first. From this geometry, the function computes the centroids of the faces and edges and finds the set of edges that are related to the mesh. The geometric vectors-edge directions, face normals, and relative position vectors, that are required for the polyhedral gravity equations are then constructed as discussed in Scheeres (2012).
@@ -86,13 +87,13 @@ Scheeres D. (2012) Orbital Motion in Strongly Perturbed Environments: Applicatio
 from gravdyn import build_potential_derivatives
 
 d_exprs, d_funcs = build_potential_derivatives(
-    name_central_body="Apophis",  # Name of the central body
-    pattern="pot_*.dat",  # Pattern used to find partial potential files
-    n_files=100,  # Maximum number of potential parts to load
-    gm0=1.0,  # Gravitational parameter used in the substitution
-    lambdify_backend="jax",  # Backend used to create fast numerical functions
-    base_dir="Data",  # Root directory containing the body data
-    verbose=True,  # If True, prints progress messages
+    name_central_body="Apophis",             # Name of the central body
+    pattern="pot_*.dat",                     # Pattern used to find partial potential files
+    n_files=100,                             # Maximum number of potential parts to load
+    gm0=1.0,                                 # Gravitational parameter used in the substitution
+    lambdify_backend="jax",                  # Backend used to create fast numerical functions
+    base_dir="/caminho/completo/para/Data",  # Root directory containing the body data
+    verbose=True,                            # If True, prints progress messages
 )
 ```
 
@@ -108,12 +109,40 @@ European Physical Journal Special Topics, 232(18-19):2961–2966, December 2023
 
 ---
 
-### 4. Compute gravitational field
+### 4. Generate layered mascon model
+
+```python
+from gravdyn import generate_layered_mascons
+
+df_mascons = generate_layered_mascons(
+    base_dir="/caminho/completo/para/Data",
+    asteroid="Apophis",
+    total_mass=5.3e10,
+    densities=[1.5, 1.8, 2.0],
+    output_csv="layered_mascons.csv"
+)
+```
+
+This function generates a layered mascon (mass concentration) model from a triangulated polyhedron. The polyhedron is assumed to be represented by triangular faces, where each face together with the origin defines one tetrahedron. Each tetrahedron is then subdivided radially into `n` layers, where `n = len(densities)`. One point mass (mascon) is assigned to each layer using the exact center of mass computed as the difference between two similar tetrahedra.
+
+The input densities control the relative mass distribution among layers. The masses are first computed from the density values, then rescaled so that the final sum equals exactly the provided `total_mass`. Using uniform densities produces a layered discretization of a homogeneous body, while varying densities allows modeling of internal density variations.
+
+The output is a DataFrame with columns: `['x', 'y', 'z', 'mass', 'face_id', 'layer_id', 'density_input']`, containing the coordinates, masses, face associations, and layer indices for each mascon. For more details on this method and its validation, we refer the reader to XXXXX.
+
+#### References:
+T. G. G. Chanut, S. Aljbaae, A. F. B. A. Prado, and V. Carruba. Dynamics in the vicinity of (101955) Bennu: solar radiation
+pressure effects in equatorial orbits. MNRAS, 470:2687–2701, September 2017. URL: https://academic.oup.com/mnras/article/470/3/2687/3829898
+
+S. Aljbaae, J. Souchay, V. Carruba, D. M. Sanchez, and A. F. B. A. Prado. Influence of Apophis’ spin axis variations on a
+spacecraft during the 2029 close approach with Earth. Romanian Astronomical Journal, 31(3):317–337, November 2021. URL: https://www.astro.ro/~roaj/31_3/20-2119apophis2b.pdf
+---
+
+### 5. Compute gravitational field
 
 #### Point-mass model
 
 ```python
-from gravdyn.pot_functions import pot_point_mass
+from gravdyn import pot_point_mass
 
 p, acc = pot_point_mass(mu=1e5, stat=[1.0, 0.0, 0.0])
 ```
@@ -123,23 +152,54 @@ p, acc = pot_point_mass(mu=1e5, stat=[1.0, 0.0, 0.0])
 #### Polyhedral model
 
 ```python
-from gravdyn.pot_functions import pot_polyhedral_model
+from gravdyn import prepare_polyhedral_model, batched_polyhedral_potential
 
-U, A = pot_polyhedral_model(
-    gm_body=1e5,
+polyhedral_data = prepare_polyhedral_model(
+    asteroid="Apophis",
+    base_dir="/caminho/completo/para/Data",
+    verbose=False,
+)
+p, acc = batched_polyhedral_potential(gm_body=1e5,
+                                      stat=[1.0, 0.0, 0.0],
+                                      polyhedral_data=polyhedral_data,
+                                      batch_size=2000)
+
+```
+
+#### Expansion model
+
+```python
+from gravdyn import build_potential_derivatives, pot_expansion
+
+f_pot_expansion, f_d_pot_expansion = build_potential_derivatives(
+    name_central_body="Apophis",
+    pattern="pot_*.dat",
+    gm0=1e5,
+    lambdify_backend="jax",
+    base_dir="/caminho/completo/para/Data",
+    verbose=True,
+)
+
+p, acc = pot_expansion(
     stat=[1.0, 0.0, 0.0],
-    polyhedral_data=data
+    f_pot_expansion=f_pot_expansion,
+    f_d_pot_expansion=f_d_pot_expansion,
 )
 ```
 
 ---
 
-#### Tetrahedron-center (fast approximation)
+#### Tetrahedron-center
 
 ```python
-from gravdyn.pot_functions import pot_tetrahedron_center_jax_v3
+from gravdyn import load_tetrahedron_data, batched_pot_mascon
 
-p, a = pot_tetrahedron_center_jax_v3(gm_body, stat, data_shape)
+data_shape = load_tetrahedron_data(
+    asteroid="Apophis",
+    base_dir="/caminho/completo/para/Data",
+    tetrahedron_data_file="layered_mascons.csv"
+)
+p, acc = batched_pot_mascon([1.0, 0.0, 0.0], data_shape, batch_size=20000)
 ```
 
 ---
@@ -184,6 +244,22 @@ p, a = pot_tetrahedron_center_jax_v3(gm_body, stat, data_shape)
 - Werner & Scheeres (1997) — Polyhedral gravity model  
 - Tsoulis (2012) — Gravitational modeling  
 - JAX documentation — https://jax.readthedocs.io  
+
+---
+
+## GUI Application
+
+GravDyn includes a graphical user interface for interactive visualization and potential field computation. Launch it with:
+
+```bash
+python -m gravdyn.gui.gravdyn_gui
+```
+
+The GUI provides three tabs:
+
+- **Shape Viewer** — Load and visualize asteroid mesh models in 3D
+- **Potential** — Compute gravitational fields using different models and export results
+- **Settings** — *(Coming soon)* 
 
 ---
 

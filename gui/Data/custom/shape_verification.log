@@ -1,0 +1,49 @@
+Plot saved to: /home/aljbaae/Script_Safwan/GravDyn/Package_GravDyn/gui/Data/custom/shape_projection.png
+3D HTML plot saved to: /home/aljbaae/Script_Safwan/GravDyn/Package_GravDyn/gui/Data/custom/shape_3d.html
+==========================
+The name of the asteroid: custom
+the considered mass is: 1000000000000.0
+the considered density is: 1.75
+
+===== Centering Mesh =====
+Original center of mass: [ 2.28080415e-08 -2.47920970e-09  7.81242857e-09]
+New center of mass: [ 1.19105689e-18 -4.61534543e-18  4.76422754e-18]
+✔ Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 3.034286e-02
+Reference volume (M/rho)    : 5.714286e-01
+Scaling factor applied      : 2.660532e+00
+Rescaled mesh volume        : 5.714286e-01
+Relative error              : 1.943e-16
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 1.00000000e+00  5.67356201e-07 -4.57588332e-07]
+ [-5.67356234e-07  1.00000000e+00 -7.25250759e-08]
+ [ 4.57588291e-07  7.25253354e-08  1.00000000e+00]]
+
+Rotation angles applied (deg):
+[np.float64(4.175642726777265e-05), np.float64(3.275643653173674e-05), np.float64(2.6535746420754912e-05)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00  0.00000000e+00 -0.00000000e+00]
+ [ 0.00000000e+00 -1.00000000e+00 -4.21884749e-15]
+ [ 0.00000000e+00  4.44089210e-15 -1.00000000e+00]]
+
+Alignment error (||R - I||): 2.828e+00
+⚠ Warning: alignment may be inaccurate.
+===================================================
+
+Plot saved to: /home/aljbaae/Script_Safwan/GravDyn/Package_GravDyn/gui/Data/custom/modified_shape_projection.png
+3D HTML plot saved to: /home/aljbaae/Script_Safwan/GravDyn/Package_GravDyn/gui/Data/custom/modified_shape_3d.html
+Vertices saved to: /home/aljbaae/Script_Safwan/GravDyn/Package_GravDyn/gui/Data/custom/modified_v.dat
+Faces saved to: /home/aljbaae/Script_Safwan/GravDyn/Package_GravDyn/gui/Data/custom/modified_f.dat

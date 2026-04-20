@@ -10,20 +10,18 @@ This application provides a user-friendly interface to:
 - Compute and save potential fields
 """
 
-import os
 import sys
-import warnings
 from pathlib import Path
-
-import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+try:
+    import tkinter as tk
+except ImportError:
+    raise RuntimeError(
+        "Tkinter is required for the GUI.\n"
+        "Install it with: sudo apt install python3-tk"
+    )
+from tkinter import ttk
 
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
