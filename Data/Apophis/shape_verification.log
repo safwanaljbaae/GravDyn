@@ -1,5 +1,9 @@
-Plot saved to: ../Data/Apophis/shape_projection.png
-3D HTML plot saved to: ../Data/Apophis/shape_3d.html
+Plot saved to: Data/Apophis/shape_projection.png
+3D HTML plot saved to: Data/Apophis/shape_3d.html
+==========================
+The name of the asteroid: Apophis
+the considered mass is: 53100000000.0
+the considered density is: 1.75
 
 ===== Centering Mesh =====
 Original center of mass: [ 5.92896416e-14  5.25680586e-14 -6.05676461e-14]
@@ -39,7 +43,7 @@ Alignment error (||R - I||): 7.085e-12
 ✔ Mesh successfully aligned with principal axes.
 ===================================================
 
-Plot saved to: ../Data/Apophis/modified_shape_projection.png
-3D HTML plot saved to: ../Data/Apophis/modified_shape_3d.html
-Vertices saved to: ../Data/Apophis/modified_v.dat
-Faces saved to: ../Data/Apophis/modified_f.dat
+Plot saved to: Data/Apophis/modified_shape_projection.png
+3D HTML plot saved to: Data/Apophis/modified_shape_3d.html
+Vertices saved to: Data/Apophis/modified_v.dat
+Faces saved to: Data/Apophis/modified_f.dat
