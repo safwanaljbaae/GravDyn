@@ -9,4 +9,4 @@ requests==2.33.1
 sympy==1.14.0
 dotenv==0.9.9
 scipy-stubs==1.17.1.4
-python3-tk
+networkx==3.6.1

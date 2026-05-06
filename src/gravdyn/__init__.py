@@ -1,8 +1,8 @@
 from gravdyn.shape_verification import shape_verification
-from gravdyn.prepare_polyhedral_model import prepare_polyhedral_model
+from gravdyn.prepare_polyhedral_model import prepare_werner_model
 from gravdyn.pot_functions import pot_point_mass
-from gravdyn.pot_functions import pot_polyhedral_model
-from gravdyn.pot_functions import batched_polyhedral_potential
+from gravdyn.pot_functions import pot_werner_model
+from gravdyn.pot_functions import batched_wrener_potential
 from gravdyn.pot_functions import batched_pot_mascon
 from gravdyn.pot_functions import pot_expansion
 from gravdyn.pot_functions import compute_pseudo_potential
@@ -14,11 +14,11 @@ from gravdyn.constants import GRAVITATIONAL_CONSTANT
 
 __all__ = [
     "shape_verification",
-    "prepare_polyhedral_model",
+    "prepare_werner_model",
     "pot_point_mass",
-    "batched_polyhedral_potential",
+    "batched_wrener_potential",
     "batched_pot_mascon",
-    "pot_polyhedral_model",
+    "pot_werner_model",
     "pot_expansion",
     "compute_pseudo_potential",
     "save_potential_to_file",

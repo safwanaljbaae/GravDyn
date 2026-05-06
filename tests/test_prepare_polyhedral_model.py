@@ -8,7 +8,7 @@ import importlib
 import numpy as np
 import pytest
 
-from gravdyn import prepare_polyhedral_model
+from gravdyn import prepare_werner_model
 
 MODULE = importlib.import_module("gravdyn.prepare_polyhedral_model")
 
@@ -90,7 +90,7 @@ def test_prepare_polyhedral_model_raises_if_vertices_or_faces_missing(monkeypatc
     monkeypatch.setattr(MODULE.os.path, "exists", lambda path: False)
 
     with pytest.raises(FileNotFoundError, match="Shape files"):
-        prepare_polyhedral_model(
+        prepare_werner_model(
             asteroid="Apophis",
             base_dir="Data",
             verbose=False,
@@ -134,7 +134,7 @@ def test_prepare_polyhedral_model_computes_missing_products(monkeypatch, sample_
     monkeypatch.setattr(MODULE, "compute_polyhedron_centroids", fake_compute_polyhedron_centroids)
     monkeypatch.setattr(MODULE, "compute_polyhedron_vectors", fake_compute_polyhedron_vectors)
 
-    result = prepare_polyhedral_model(
+    result = prepare_werner_model(
         asteroid="Apophis",
         base_dir="Data",
         verbose=False,
@@ -197,7 +197,7 @@ def test_prepare_polyhedral_model_loads_existing_products(monkeypatch, sample_ge
 
     monkeypatch.setattr(MODULE, "_load_dat", fake_load_dat)
 
-    result = prepare_polyhedral_model(
+    result = prepare_werner_model(
         asteroid="Apophis",
         base_dir="Data",
         verbose=False,

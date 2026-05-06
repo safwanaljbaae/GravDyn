@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: gravdyn
-Version: 0.1.0
+Version: 0.1.1
 Summary: A minimal Python package exposing a single polyhedral_approach function.
 Author-email: Safwan Aljbaae <safwan.aljbaae@gmail.com>
 License: MIT
@@ -17,7 +17,7 @@ Requires-Dist: requests==2.33.1
 Requires-Dist: sympy==1.14.0
 Requires-Dist: dotenv==0.9.9
 Requires-Dist: scipy-stubs==1.17.1.4
-Requires-Dist: python3-tk
+Requires-Dist: networkx==3.6.1
 
 # GravDyn
 
@@ -84,12 +84,13 @@ This function prepares and validates a polyhedral shape model of an irregular bo
 ### 2. Prepare polyhedral model
 
 ```python
-from gravdyn import prepare_polyhedral_model
+from gravdyn import prepare_werner_model
 
-data = prepare_polyhedral_model(
-    asteroid="Apophis",                      # Name of the asteroid → used to locate its folder
+data = prepare_werner_model(
+    asteroid="Apophis",  # Name of the asteroid → used to locate its folder
     base_dir="/caminho/completo/para/Data",  # Base directory containing shape and model files
-    verbose=True,                            # If True, prints progress and file status messages
+    verbose=True  # If True, prints progress and file status messages
+)
 ```
 
 This function generates the geometric quantities required to evaluate the gravitational field of an irregular body using the classical polyhedral formulation. The vertices and faces are loaded first. From this geometry, the function computes the centroids of the faces and edges and finds the set of edges that are related to the mesh. The geometric vectors-edge directions, face normals, and relative position vectors, that are required for the polyhedral gravity equations are then constructed as discussed in Scheeres (2012).
@@ -97,7 +98,7 @@ This function generates the geometric quantities required to evaluate the gravit
 These quantities correspond directly to the terms appearing in the polyhedral potential formulation, where the gravitational potential is expressed as a sum of contributions from edges and faces, involving dyadic products and geometric factors such as logarithmic edge terms and solid angles. This formulation, originally developed by Werner and widely used in asteroid dynamics, is summarized in Orbital Motion in Strongly Perturbed Environments by Daniel J. Scheeres and enables accurate computation of the gravitational field of arbitrarily shaped, constant-density bodies.
 
 #### References:
-Scheeres D. (2012) Orbital Motion in Strongly Perturbed Environments: Applications to Asteroid, Comet and Planetary Satellite Orbiters. Springer Praxis Books, Springer Berlin Heidelberg, URL https://books.google.cl/books?id=bRtJPgAACAAJ
+- Scheeres D. (2012) Orbital Motion in Strongly Perturbed Environments: Applications to Asteroid, Comet and Planetary Satellite Orbiters. Springer Praxis Books, Springer Berlin Heidelberg, URL https://books.google.cl/books?id=bRtJPgAACAAJ
 
 ---
 
@@ -124,17 +125,46 @@ The function checks whether the derivatives of the potential are already availab
 This approach follows the general idea behind the Potential Series Expansion Method. Rather than evaluating the gravitational field directly from the geometry at every step, it builds an analytical representation once and reuses it (Mota et al. 2023). The accuracy depends on the order of the expansion, but the computational cost is significantly reduced compared to the classical polyhedral method. 
 
 #### References:
-Mota M. L., Aljbaae S., and Prado A. F. B. A. The potential series expansion method: application to the asteroid (87) Sylvia.
+- Mota M. L., Aljbaae S., and Prado A. F. B. A. The potential series expansion method: application to the asteroid (87) Sylvia.
 European Physical Journal Special Topics, 232(18-19):2961–2966, December 2023
 
 ---
 
-### 4. Compute gravitational field
+### 4. Generate layered mascon model
+
+```python
+from gravdyn import generate_layered_mascons
+
+df_mascons = generate_layered_mascons(
+    base_dir="/caminho/completo/para/Data",
+    asteroid="Apophis",
+    total_mass=5.3e10,
+    densities=[1.5, 1.8, 2.0],
+    output_csv="layered_mascons.csv"
+)
+```
+
+This function generates a layered mascon (mass concentration) model from a triangulated polyhedron. The polyhedron is assumed to be represented by triangular faces, where each face together with the origin defines one tetrahedron. Each tetrahedron is then subdivided radially into `n` layers, where `n = len(densities)`. One point mass (mascon) is assigned to each layer using the exact center of mass computed as the difference between two similar tetrahedra.
+
+The input densities control the relative mass distribution among layers. The masses are first computed from the density values, then rescaled so that the final sum equals exactly the provided `total_mass`. Using uniform densities produces a layered discretization of a homogeneous body, while varying densities allows modeling of internal density variations.
+
+The output is a DataFrame with columns: `['x', 'y', 'z', 'mass', 'face_id', 'layer_id', 'density_input']`, containing the coordinates, masses, face associations, and layer indices for each mascon. For more details on this method and its validation, we refer the reader to Chanut et al, 2017 and Aljbaae et. al, 2021.
+
+#### References:
+
+- Chanut T. G. G., Aljbaae S.,Prado A. F. B. A., and Carruba V. Dynamics in the vicinity of (101955) Bennu: solar radiation
+pressure effects in equatorial orbits. MNRAS, 470:2687–2701, September 2017. URL: https://academic.oup.com/mnras/article/470/3/2687/3829898
+
+- Aljbaae S., Souchay J., Carruba V., Sanchez D. M., and Prado A. F. B. A. Influence of Apophis’ spin axis variations on 
+a spacecraft during the 2029 close approach with Earth. Romanian Astronomical Journal, 31(3):317–337, November 2021. URL: https://www.astro.ro/~roaj/31_3/20-2119apophis2b.pdf
+---
+
+### 5. Compute gravitational field
 
 #### Point-mass model
 
 ```python
-from gravdyn.pot_functions import pot_point_mass
+from gravdyn import pot_point_mass
 
 p, acc = pot_point_mass(mu=1e5, stat=[1.0, 0.0, 0.0])
 ```
@@ -144,36 +174,59 @@ p, acc = pot_point_mass(mu=1e5, stat=[1.0, 0.0, 0.0])
 #### Polyhedral model
 
 ```python
-from gravdyn.pot_functions import pot_polyhedral_model
+from gravdyn import prepare_werner_model, batched_wrener_potential
 
-U, A = pot_polyhedral_model(
-    gm_body=1e5,
+polyhedral_data = prepare_werner_model(
+  asteroid="Apophis",
+  base_dir="/caminho/completo/para/Data",
+  verbose=False,
+)
+p, acc = batched_wrener_potential(gm_body=1e5,
+                                  stat=[1.0, 0.0, 0.0],
+                                  polyhedral_data=polyhedral_data,
+                                  batch_size=2000)
+
+```
+
+#### Expansion model
+
+```python
+from gravdyn import build_potential_derivatives, pot_expansion
+
+f_pot_expansion, f_d_pot_expansion = build_potential_derivatives(
+    name_central_body="Apophis",
+    pattern="pot_*.dat",
+    gm0=1e5,
+    lambdify_backend="jax",
+    base_dir="/caminho/completo/para/Data",
+    verbose=True,
+)
+
+p, acc = pot_expansion(
     stat=[1.0, 0.0, 0.0],
-    polyhedral_data=data
+    f_pot_expansion=f_pot_expansion,
+    f_d_pot_expansion=f_d_pot_expansion,
 )
 ```
 
 ---
 
-#### Tetrahedron-center (fast approximation)
+#### Tetrahedron-center
 
 ```python
-from gravdyn.pot_functions import pot_tetrahedron_center_jax_v3
+from gravdyn import load_tetrahedron_data, batched_pot_mascon
 
-p, a = pot_tetrahedron_center_jax_v3(gm_body, stat, data_shape)
+data_shape = load_tetrahedron_data(
+    asteroid="Apophis",
+    base_dir="/caminho/completo/para/Data",
+    tetrahedron_data_file="layered_mascons.csv"
+)
+p, acc = batched_pot_mascon([1.0, 0.0, 0.0], data_shape, batch_size=20000)
 ```
 
 ---
 
-## ⚙️ Input Requirements
-
-- Vertices: shape `(N, 3)`
-- Faces: shape `(M, 3)`
-- Units must be consistent (typically km and km³/s²)
-
----
-
-## 📊 Supported Models
+## Supported Models
 
 | Model                     | Accuracy | Speed | Notes |
 |--------------------------|--------|------|------|
@@ -200,15 +253,24 @@ p, a = pot_tetrahedron_center_jax_v3(gm_body, stat, data_shape)
 
 ---
 
-## 📚 References
+## GUI Application
 
-- Werner & Scheeres (1997) — Polyhedral gravity model  
-- Tsoulis (2012) — Gravitational modeling  
-- JAX documentation — https://jax.readthedocs.io  
+GravDyn includes a graphical user interface for interactive visualization and potential field computation. Launch it with:
+
+```bash
+python -m gravdyn.gui.gravdyn_gui
+```
+
+The GUI provides three tabs:
+
+- **Shape Viewer** — Load and visualize asteroid mesh models in 3D
+- **Potential** — Compute gravitational fields using different models and export results
+- **Settings** — *(Coming soon)* 
 
 ---
 
-## 👤 Author
+## Author
 
 Safwan Aljbaae  
 Universidad de Atacama  
+Email: safwan.aljbaae@gmail.com

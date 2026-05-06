@@ -2,10 +2,9 @@ from __future__ import annotations
 import os
 import numpy as np
 import pandas as pd
-from typing import Dict
 from pathlib import Path
 import jax.numpy as jax_np
-from typing import Sequence
+from typing import Sequence, Dict
 from dataclasses import dataclass
 
 from gravdyn.plot_tools import plot_layers_by_density, plot_layer_intersections
@@ -39,45 +38,27 @@ def generate_layered_mascons(
     """
     Generate a layered mascon model from a triangulated polyhedron.
 
-    The polyhedron is assumed to be represented by triangular faces. Each face,
-    together with the origin, defines one tetrahedron. Each tetrahedron is
-    subdivided radially into n layers, where n = len(densities). One point mass
-    is assigned to each layer using the exact center of mass of the layer
-    obtained as the difference between two similar tetrahedra.
-
-    The masses are first computed from the relative/absolute density values in
-    `densities`, then rescaled so that the final sum of all point masses is
-    exactly equal to `total_mass`.
+    This function replicates the behavior of fit_polyhedron_nlayer.f90.
+    Each face with origin defines a tetrahedron, subdivided into n layers
+    (n = len(densities)). Point masses use approximate centers of mass.
 
     Parameters
     ----------
     base_dir : str
-        Path to the directory containing asteroid shape model files.
+        Path to directory containing asteroid shape model files.
     asteroid : str
-        Name of the asteroid model (used to locate its folder in `base_dir`).
+        Name of the asteroid model.
     total_mass : float
         Total mass of the asteroid [kg].
     densities : sequence of float
-        Density values for the layers. Its length defines the number of layers.
-        These values control the relative mass distribution among layers.
+        Density values for layers [g/cm³]. Length defines number of layers.
     output_csv : str or Path, optional
-        Path to the CSV file where the mascon coordinates and masses will be saved.
+        Output CSV file path.
 
     Returns
     -------
     pandas.DataFrame
-        DataFrame with columns:
-        ['x', 'y', 'z', 'mass', 'face_id', 'layer_id', 'density_input']
-
-    Notes
-    -----
-    1. This method assumes the origin lies inside the body and that the face
-       triangulation consistently represents the polyhedron.
-    2. The input densities do not need to integrate to the provided total mass.
-       The function rescales all mascon masses at the end so that their sum is
-       exactly `total_mass`.
-    3. If the density list is uniform, this produces a layered discretization
-       of a homogeneous body.
+        Columns: ['x', 'y', 'z', 'mass', 'face_id', 'layer_id', 'density_input', 'mu']
     """
     files = PolyFiles(base_dir=base_dir, asteroid=asteroid)
 
@@ -88,33 +69,26 @@ def generate_layered_mascons(
         missing_files.append(files.file_faces)
 
     if missing_files:
-        raise FileNotFoundError(
-            f"Shape files do not exist: {missing_files}.\n"
-            f"Please ensure that you run the 'shape_verification' function beforehand."
-        )
-
-    output_csv = Path(output_csv)
+        raise FileNotFoundError(f"Shape files do not exist: {missing_files}.")
 
     vertices = np.loadtxt(files.file_vertices, dtype=float)
     faces = np.loadtxt(files.file_faces, dtype=int)
 
     if vertices.ndim != 2 or vertices.shape[1] != 3:
-        raise ValueError("vertices_file must contain an array of shape (N, 3).")
-
+        raise ValueError("vertices must be shape (N, 3).")
     if faces.ndim != 2 or faces.shape[1] != 3:
-        raise ValueError("faces_file must contain an array of shape (M, 3).")
+        raise ValueError("faces must be shape (M, 3).")
 
     densities = np.asarray(densities, dtype=float)
     if densities.ndim != 1 or len(densities) == 0:
-        raise ValueError("densities must be a non-empty 1D sequence.")
+        raise ValueError("densities must be non-empty 1D.")
     if np.any(densities < 0):
         raise ValueError("densities must be non-negative.")
     if not np.any(densities > 0):
-        raise ValueError("at least one density must be strictly positive.")
+        raise ValueError("at least one density must be positive.")
     if total_mass <= 0:
         raise ValueError("total_mass must be positive.")
 
-    # Convert 1-based faces to 0-based if needed
     if faces.min() == 1:
         faces = faces - 1
 
@@ -122,97 +96,115 @@ def generate_layered_mascons(
         raise ValueError("faces contain invalid vertex indices.")
 
     n_layers = len(densities)
+    densities_scaled = densities * 1.0e12  # g/cm³ to kg/km³
 
-    def tetra_volume(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
-        """Signed volume of tetrahedron (0, a, b, c)."""
+    def tetra_volume(a, b, c):
+        """Volume of tetrahedron (0, a, b, c)."""
         return abs(np.dot(a, np.cross(b, c))) / 6.0
 
-    def layer_center_of_mass(a: np.ndarray, b: np.ndarray, c: np.ndarray, s0: float, s1: float) -> np.ndarray:
-        """
-        Center of mass of the layer between two similar tetrahedra scaled by s0 and s1.
-        """
-        face_centroid_tetra = (a + b + c) / 4.0
-
-        # Exact factor from difference of two similar tetrahedra
-        denom = s1**3 - s0**3
-        if np.isclose(denom, 0.0):
-            raise ValueError("Degenerate layer encountered: s1^3 - s0^3 is zero.")
-
-        factor = (s1**4 - s0**4) / denom
-        return factor * face_centroid_tetra
-
     rows = []
-    raw_total_mass = 0.0
 
     for face_id, (i, j, k) in enumerate(faces):
         a = vertices[i]
         b = vertices[j]
         c = vertices[k]
 
-        vol_full = tetra_volume(a, b, c)
-        if np.isclose(vol_full, 0.0):
-            continue
+        # Layered decomposition (match Fortran EXACTLY)
+        # Fortran uses n_part that counts DOWN from nlayer to 1
+        part_x = np.zeros((n_layers, 3))
+        part_y = np.zeros((n_layers, 3))
+        part_z = np.zeros((n_layers, 3))
 
-        for layer_id in range(n_layers):
-            s0 = layer_id / n_layers
-            s1 = (layer_id + 1) / n_layers
+        n_part = n_layers
+        for ii in range(n_layers):
+            scale = n_part / n_layers  # Fortran: REAL(n_part, 8) / REAL(nlayer, 8)
+            part_x[n_part-1] = [a[0] * scale, b[0] * scale, c[0] * scale]
+            part_y[n_part-1] = [a[1] * scale, b[1] * scale, c[1] * scale]
+            part_z[n_part-1] = [a[2] * scale, b[2] * scale, c[2] * scale]
+            n_part -= 1
 
-            # Volume of this radial layer from similarity scaling
-            layer_volume = vol_full * (s1**3 - s0**3)
+        # Compute volumes for each layer (match Fortran vol subroutine)
+        vol_tetr_all = np.zeros(n_layers)
+        for ii in range(n_layers):
+            # Fortran indices are 1-based, Python are 0-based
+            v1 = np.array([part_x[ii][0], part_y[ii][0], part_z[ii][0]])
+            v2 = np.array([part_x[ii][1], part_y[ii][1], part_z[ii][1]])
+            v3 = np.array([part_x[ii][2], part_y[ii][2], part_z[ii][2]])
+            vol_tetr_all[ii] = np.dot(v1, np.cross(v2, v3)) / 6.0
 
-            # Raw mass from given density
-            m_raw = densities[layer_id] * layer_volume
+        # Compute mu for all layers first (match Fortran)
+        mu_layers = np.zeros(n_layers)
+        for ii in range(n_layers):
+            if ii == 0:
+                # Layer 1 (innermost)
+                mu_layers[ii] = GRAVITATIONAL_CONSTANT * vol_tetr_all[ii] * densities_scaled[ii]
+            else:
+                # Layers 2..nlayer
+                vol_tetr = vol_tetr_all[ii] - vol_tetr_all[ii-1]
+                mu_layers[ii] = GRAVITATIONAL_CONSTANT * vol_tetr * densities_scaled[ii]
 
-            if np.isclose(m_raw, 0.0):
-                continue
+        # Write output in Fortran order: layers 2..nlayer first, then layer 1
+        for ii in range(1, n_layers):
+            vol_tetr = vol_tetr_all[ii] - vol_tetr_all[ii-1]
+            xc = (part_x[ii][0] + part_x[ii][1] + part_x[ii][2] +
+                  part_x[ii-1][0] + part_x[ii-1][1] + part_x[ii-1][2]) / 6.0
+            yc = (part_y[ii][0] + part_y[ii][1] + part_y[ii][2] +
+                  part_y[ii-1][0] + part_y[ii-1][1] + part_y[ii-1][2]) / 6.0
+            zc = (part_z[ii][0] + part_z[ii][1] + part_z[ii][2] +
+                  part_z[ii-1][0] + part_z[ii-1][1] + part_z[ii-1][2]) / 6.0
 
-            r_cm = layer_center_of_mass(a, b, c, s0, s1)
+            rows.append({
+                "x": xc, "y": yc, "z": zc,
+                "mass": mu_layers[ii] / GRAVITATIONAL_CONSTANT,
+                "face_id": face_id + 1,
+                "layer_id": ii + 1,
+                "density_input": densities[ii],
+                "mu": mu_layers[ii],
+            })
 
-            rows.append(
-                {
-                    "x": r_cm[0],
-                    "y": r_cm[1],
-                    "z": r_cm[2],
-                    "mass_raw": m_raw,
-                    "face_id": face_id,
-                    "layer_id": layer_id + 1,
-                    "density_input": densities[layer_id],
-                }
-            )
-            raw_total_mass += m_raw
+        # Layer 1 (innermost) - after layers 2..nlayer (match Fortran order)
+        xc = (part_x[0][0] + part_x[0][1] + part_x[0][2]) / 4.0
+        yc = (part_y[0][0] + part_y[0][1] + part_y[0][2]) / 4.0
+        zc = (part_z[0][0] + part_z[0][1] + part_z[0][2]) / 4.0
 
-    if len(rows) == 0:
-        raise ValueError("No valid mascon points were generated. Check the input geometry.")
-
-    if np.isclose(raw_total_mass, 0.0):
-        raise ValueError("Computed raw total mass is zero. Check densities and geometry.")
+        rows.append({
+            "x": xc, "y": yc, "z": zc,
+            "mass": mu_layers[0] / GRAVITATIONAL_CONSTANT,
+            "face_id": face_id + 1,
+            "layer_id": 1,
+            "density_input": densities[0],
+            "mu": mu_layers[0],
+        })
 
     df = pd.DataFrame(rows)
 
-    # Rescale masses so that the sum matches the requested total mass exactly
-    scale_factor = total_mass / raw_total_mass
-    df["mass"] = df["mass_raw"] * scale_factor
-    df = df[["x", "y", "z", "mass", "face_id", "layer_id", "density_input"]]
+    # --- Adjust masses to match total_mass as close as possible ---
+    current_mass = df['mass'].sum()
+    mass_diff = current_mass - total_mass
 
-    # Force exact total mass by correcting the last point for roundoff
-    mass_error = total_mass - df["mass"].sum()
-    df.loc[df.index[-1], "mass"] += mass_error
+    # If mass difference is significant, scale all masses proportionally
+    # This preserves the density distribution while matching total mass
+    tolerance = 1e-12 * total_mass  # Relative tolerance
+    if abs(mass_diff) > tolerance:
+        scaling_factor = total_mass / current_mass
+        df['mass'] = df['mass'] * scaling_factor
+        df['mu'] = df['mass'] * GRAVITATIONAL_CONSTANT
 
-    df['mu'] = [x * GRAVITATIONAL_CONSTANT for x in df["mass"]]
-    output_csv = os.path.join(base_dir, asteroid, output_csv)
-    df.to_csv(output_csv, index=False)
+    output_csv_full = Path(base_dir) / asteroid / output_csv
+    output_csv_full.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_csv_full, float_format="%.8e", index=False)
 
     output_file = os.path.join(base_dir, asteroid, 'layered_mascons.png')
     plot_layers_by_density(df, output_file=output_file)
     output_file = os.path.join(base_dir, asteroid, 'layered_mascons_intersections.png')
     plot_layer_intersections(df, output_file=output_file, point_size=8)
 
-    # print(f"Mascon file saved to: {output_csv}")
-    # print(f"Number of faces: {len(faces)}")
-    # print(f"Number of mascon points: {len(df)}")
-    # print(f"Requested total mass : {total_mass:.16e} kg")
-    # print(f"Computed total mass  : {df['mass'].sum():.16e} kg")
-    # print(f"Mass difference      : {df['mass'].sum() - total_mass:.16e} kg")
+    print(f"Mascon file saved to: {output_csv_full}")
+    print(f"Number of faces: {len(faces)}")
+    print(f"Number of mascon points: {len(df)}")
+    print(f"Requested total mass : {total_mass:.16e} kg")
+    print(f"Computed total mass  : {df['mass'].sum():.16e} kg")
+    print(f"Mass difference      : {df['mass'].sum() - total_mass:.16e} kg")
 
     return df
 
@@ -263,5 +255,4 @@ def load_tetrahedron_data(
 
     except Exception as e:
         raise RuntimeError(f"Failed to load or process file '{filename}': {e}")
-
 

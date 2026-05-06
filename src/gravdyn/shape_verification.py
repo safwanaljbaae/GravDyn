@@ -5,7 +5,7 @@ import trimesh
 import numpy as np
 from pathlib import Path
 from gravdyn.shape_tools import load_vertices, load_faces
-from gravdyn.plot_tools import save_mesh_projections, save_mesh_3d_html
+from gravdyn.plot_tools import save_mesh_projections, save_mesh_3d_html, save_all_mesh_problem_html
 
 
 class Tee:
@@ -150,15 +150,358 @@ def report_principal_axes(eigenvectors, new_eigenvectors, angles):
     print("===================================================\n")
 
 
-def shape_verification(
-    asteroid_name: str,
-    mass: float,
-    density: float,
-    base_dir: float,
-    vertices_file: str,
-    faces_file: str
-) -> None:
+def diagnose_polyhedral_mesh(
+        mesh: trimesh.Trimesh,
+        tol: float = 1e-12,
+        verbose: bool = True,
+        return_elements: bool = True,
+):
+    """
+    Diagnose common problems in a polyhedral triangular mesh.
 
+    Parameters
+    ----------
+    mesh : trimesh.Trimesh
+        Input mesh.
+
+    tol : float
+        Tolerance for detecting near-zero-area faces.
+
+    verbose : bool
+        If True, print the diagnostic report.
+
+    return_elements : bool
+        If True, include the actual problematic elements in the returned report.
+
+    Returns
+    -------
+    report : dict
+        Dictionary with diagnostic information.
+
+        If return_elements=True, the dictionary also contains:
+
+        report["problem_elements"]["boundary_edges"]
+            Array of boundary/open edges, shape (n, 2).
+
+        report["problem_elements"]["non_manifold_edges"]
+            Array of non-manifold edges, shape (n, 2).
+
+        report["problem_elements"]["degenerate_faces"]
+            Array of degenerate face indices.
+
+        report["problem_elements"]["duplicate_face_ids"]
+            Array of duplicate face indices.
+
+        report["problem_elements"]["unused_vertices"]
+            Array of unused vertex indices.
+
+        report["problem_elements"]["duplicate_vertex_coordinate_indices"]
+            List of arrays. Each array contains vertex indices that share
+            the same coordinates.
+
+        report["problem_elements"]["broken_faces"]
+            Array of broken face indices returned by trimesh.repair.broken_faces.
+
+        report["problem_elements"]["components"]
+            List of Trimesh components.
+    """
+
+    if not isinstance(mesh, trimesh.Trimesh):
+        raise TypeError("Input must be a trimesh.Trimesh object.")
+
+    vertices = mesh.vertices
+    faces = mesh.faces
+
+    report = {}
+
+    # ------------------------------------------------------------
+    # Basic information
+    # ------------------------------------------------------------
+    report["num_vertices"] = int(len(vertices))
+    report["num_faces"] = int(len(faces))
+
+    report["is_watertight"] = bool(mesh.is_watertight)
+    report["is_winding_consistent"] = bool(mesh.is_winding_consistent)
+    report["is_volume"] = bool(mesh.is_volume)
+
+    try:
+        report["volume"] = float(mesh.volume)
+    except Exception:
+        report["volume"] = None
+
+    # ------------------------------------------------------------
+    # Edge topology
+    # ------------------------------------------------------------
+    edges = mesh.edges_sorted
+
+    if len(edges) > 0:
+        unique_edges, edge_counts = np.unique(
+            edges,
+            axis=0,
+            return_counts=True,
+        )
+
+        boundary_edges = unique_edges[edge_counts == 1]
+        non_manifold_edges = unique_edges[edge_counts > 2]
+    else:
+        boundary_edges = np.empty((0, 2), dtype=int)
+        non_manifold_edges = np.empty((0, 2), dtype=int)
+
+    report["num_boundary_edges"] = int(len(boundary_edges))
+    report["num_non_manifold_edges"] = int(len(non_manifold_edges))
+
+    # ------------------------------------------------------------
+    # Degenerate faces
+    # repeated vertices or near-zero area
+    # ------------------------------------------------------------
+    if len(faces) > 0:
+        repeated_vertex_faces = np.where(
+            (faces[:, 0] == faces[:, 1])
+            | (faces[:, 1] == faces[:, 2])
+            | (faces[:, 0] == faces[:, 2])
+        )[0]
+
+        zero_area_faces = np.where(mesh.area_faces <= tol)[0]
+    else:
+        repeated_vertex_faces = np.array([], dtype=int)
+        zero_area_faces = np.array([], dtype=int)
+
+    degenerate_faces = np.unique(
+        np.concatenate([repeated_vertex_faces, zero_area_faces])
+    ).astype(int)
+
+    report["num_degenerate_faces"] = int(len(degenerate_faces))
+
+    # ------------------------------------------------------------
+    # Duplicate faces
+    # independent of orientation
+    # ------------------------------------------------------------
+    if len(faces) > 0:
+        sorted_faces = np.sort(faces, axis=1)
+
+        unique_faces, face_counts = np.unique(
+            sorted_faces,
+            axis=0,
+            return_counts=True,
+        )
+
+        duplicate_face_keys = unique_faces[face_counts > 1]
+
+        duplicate_face_ids = []
+
+        for duplicate_key in duplicate_face_keys:
+            ids = np.where(
+                np.all(sorted_faces == duplicate_key, axis=1)
+            )[0]
+            duplicate_face_ids.extend(ids.tolist())
+
+        duplicate_face_ids = np.array(duplicate_face_ids, dtype=int)
+    else:
+        duplicate_face_keys = np.empty((0, 3), dtype=int)
+        duplicate_face_ids = np.array([], dtype=int)
+
+    report["num_duplicate_faces"] = int(len(duplicate_face_ids))
+
+    # ------------------------------------------------------------
+    # Unused vertices
+    # ------------------------------------------------------------
+    if len(faces) > 0:
+        used_vertices = np.unique(faces.reshape(-1))
+        all_vertices = np.arange(len(vertices))
+        unused_vertices = np.setdiff1d(all_vertices, used_vertices)
+    else:
+        unused_vertices = np.arange(len(vertices))
+
+    report["num_unused_vertices"] = int(len(unused_vertices))
+
+    # ------------------------------------------------------------
+    # Exact duplicate vertex coordinates
+    # ------------------------------------------------------------
+    duplicate_vertex_coordinate_indices = []
+
+    if len(vertices) > 0:
+        unique_vertex_coords, inverse, vertex_coord_counts = np.unique(
+            vertices,
+            axis=0,
+            return_inverse=True,
+            return_counts=True,
+        )
+
+        repeated_coord_ids = np.where(vertex_coord_counts > 1)[0]
+
+        for coord_id in repeated_coord_ids:
+            duplicate_ids = np.where(inverse == coord_id)[0]
+            duplicate_vertex_coordinate_indices.append(duplicate_ids)
+
+        num_duplicate_vertex_coordinate_groups = len(
+            duplicate_vertex_coordinate_indices
+        )
+
+        num_duplicate_vertex_coordinates = sum(
+            len(group) for group in duplicate_vertex_coordinate_indices
+        )
+    else:
+        num_duplicate_vertex_coordinate_groups = 0
+        num_duplicate_vertex_coordinates = 0
+
+    report["num_duplicate_vertex_coordinate_groups"] = int(
+        num_duplicate_vertex_coordinate_groups
+    )
+    report["num_exact_duplicate_vertex_coordinates"] = int(
+        num_duplicate_vertex_coordinates
+    )
+
+    # ------------------------------------------------------------
+    # Connected components
+    # ------------------------------------------------------------
+    try:
+        components = mesh.split(only_watertight=False)
+        report["num_connected_components"] = int(len(components))
+        report["component_faces"] = [int(len(c.faces)) for c in components]
+    except Exception:
+        components = []
+        report["num_connected_components"] = None
+        report["component_faces"] = None
+
+    # ------------------------------------------------------------
+    # Broken faces according to trimesh repair
+    # ------------------------------------------------------------
+    try:
+        broken_faces = trimesh.repair.broken_faces(mesh)
+        broken_faces = np.asarray(broken_faces, dtype=int)
+        report["num_broken_faces"] = int(len(broken_faces))
+    except Exception:
+        broken_faces = np.array([], dtype=int)
+        report["num_broken_faces"] = None
+
+    # ------------------------------------------------------------
+    # Store examples for quick printing
+    # ------------------------------------------------------------
+    report["example_boundary_edges"] = boundary_edges[:5].tolist()
+    report["example_non_manifold_edges"] = non_manifold_edges[:5].tolist()
+    report["example_degenerate_faces"] = degenerate_faces[:5].tolist()
+    report["example_duplicate_face_ids"] = duplicate_face_ids[:5].tolist()
+    report["example_unused_vertices"] = unused_vertices[:5].tolist()
+    report["example_broken_faces"] = broken_faces[:5].tolist()
+
+    # ------------------------------------------------------------
+    # Store full problematic elements
+    # ------------------------------------------------------------
+    if return_elements:
+        report["problem_elements"] = {
+            "boundary_edges": boundary_edges,
+            "non_manifold_edges": non_manifold_edges,
+            "degenerate_faces": degenerate_faces,
+            "repeated_vertex_faces": repeated_vertex_faces,
+            "zero_area_faces": zero_area_faces,
+            "duplicate_face_keys": duplicate_face_keys,
+            "duplicate_face_ids": duplicate_face_ids,
+            "unused_vertices": unused_vertices,
+            "duplicate_vertex_coordinate_indices": duplicate_vertex_coordinate_indices,
+            "broken_faces": broken_faces,
+            "components": components,
+        }
+
+    # ------------------------------------------------------------
+    # Human-readable reasons
+    # ------------------------------------------------------------
+    problems = []
+
+    if report["num_boundary_edges"] > 0:
+        problems.append(
+            f"Mesh has {report['num_boundary_edges']} boundary/open edges."
+        )
+
+    if report["num_non_manifold_edges"] > 0:
+        problems.append(
+            f"Mesh has {report['num_non_manifold_edges']} non-manifold edges."
+        )
+
+    if report["num_degenerate_faces"] > 0:
+        problems.append(
+            f"Mesh has {report['num_degenerate_faces']} degenerate faces."
+        )
+
+    if report["num_duplicate_faces"] > 0:
+        problems.append(
+            f"Mesh has {report['num_duplicate_faces']} duplicate face entries."
+        )
+
+    if report["num_unused_vertices"] > 0:
+        problems.append(
+            f"Mesh has {report['num_unused_vertices']} unused vertices."
+        )
+
+    if report["num_exact_duplicate_vertex_coordinates"] > 0:
+        problems.append(
+            f"Mesh has {report['num_exact_duplicate_vertex_coordinates']} vertices with exact duplicate coordinates."
+        )
+
+    if (
+            report["num_connected_components"] is not None
+            and report["num_connected_components"] > 1
+    ):
+        problems.append(
+            f"Mesh has {report['num_connected_components']} disconnected components."
+        )
+
+    if not report["is_winding_consistent"]:
+        problems.append(
+            "Mesh has inconsistent face winding / normals."
+        )
+
+    if report["is_watertight"] and not report["is_volume"]:
+        problems.append(
+            "Mesh is watertight but not a valid volume. Normals or orientation may be wrong."
+        )
+
+    report["problems"] = problems
+
+    # ------------------------------------------------------------
+    # Print report
+    # ------------------------------------------------------------
+    if verbose:
+        print("Polyhedral mesh diagnostic")
+        print("--------------------------")
+        print(f"Vertices: {report['num_vertices']}")
+        print(f"Faces: {report['num_faces']}")
+        print()
+        print(f"Watertight: {report['is_watertight']}")
+        print(f"Winding consistent: {report['is_winding_consistent']}")
+        print(f"Valid volume: {report['is_volume']}")
+        print(f"Volume: {report['volume']}")
+        print()
+        print(f"Boundary edges: {report['num_boundary_edges']}")
+        print(f"Non-manifold edges: {report['num_non_manifold_edges']}")
+        print(f"Degenerate faces: {report['num_degenerate_faces']}")
+        print(f"Duplicate faces: {report['num_duplicate_faces']}")
+        print(f"Unused vertices: {report['num_unused_vertices']}")
+        print(
+            "Exact duplicate vertex coordinates: "
+            f"{report['num_exact_duplicate_vertex_coordinates']}"
+        )
+        print(f"Connected components: {report['num_connected_components']}")
+        print(f"Broken faces: {report['num_broken_faces']}")
+        print()
+
+        if problems:
+            print("Problems found:")
+            for problem in problems:
+                print(f" - {problem}")
+        else:
+            print("No major topological problems found.")
+
+    return report
+
+
+def shape_verification(
+        asteroid_name: str,
+        mass: float,
+        density: float,
+        base_dir: float,
+        vertices_file: str,
+        faces_file: str
+) -> None:
     """
     Perform geometric and physical consistency checks on a triangular mesh
     representing an asteroid shape model.
@@ -237,16 +580,27 @@ def shape_verification(
     faces = load_faces(faces_file=str(faces_path))
 
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
-    
+
+    results_diagnose_polyhedral_mesh = diagnose_polyhedral_mesh(mesh, verbose=False)
+
+    if len(results_diagnose_polyhedral_mesh['problems']):
+        print(results_diagnose_polyhedral_mesh['problems'])
+        output_dir = Path(base_dir) / asteroid_name
+        output_files = save_all_mesh_problem_html(mesh, output_dir=output_dir)
+        exit()
+
     save_mesh_projections(mesh, asteroid_name, base_dir, file_nam="shape_projection.png")
     save_mesh_3d_html(mesh, asteroid_name, base_dir, file_nam="shape_3d.html")
-    
+
     # Compute center of mass (before)
     center_before = mesh.center_mass
     print(f"==========================")
     print(f"The name of the asteroid: {asteroid_name}")
     print(f"the considered mass is: {mass}")
     print(f"the considered density is: {density}")
+    print()
+    print(f"Vertices: {len(vertices)}")
+    print(f"Faces: {len(faces)}")
 
     print("\n===== Centering Mesh =====")
     print(f"Original center of mass: {center_before}")
@@ -293,7 +647,6 @@ def shape_verification(
 
     print("=================================\n")
 
-
     eigenvectors, M_4x4, angles = principal_axes(mesh)
 
     mesh.apply_transform(M_4x4)
@@ -301,7 +654,7 @@ def shape_verification(
     new_eigenvectors, new_M_4x4, new_angles = principal_axes(mesh)
 
     report_principal_axes(eigenvectors, new_eigenvectors, angles)
-    
+
     save_mesh_projections(mesh, asteroid_name, base_dir, file_nam="modified_shape_projection.png")
     save_mesh_3d_html(mesh, asteroid_name, base_dir, file_nam="modified_shape_3d.html")
 

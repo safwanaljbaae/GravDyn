@@ -1,0 +1,52 @@
+Plot saved to: Data/Lutetia/shape_projection.png
+3D HTML plot saved to: Data/Lutetia/shape_3d.html
+==========================
+The name of the asteroid: Lutetia
+the considered mass is: 1.68e+18
+the considered density is: 3.4
+
+Vertices: 1483
+Faces: 2962
+
+===== Centering Mesh =====
+Original center of mass: [ 7.52369598e-15 -7.83718331e-15  1.88092399e-15]
+New center of mass: [ 7.52369598e-15 -7.83718331e-15  1.88092399e-15]
+✔ Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 4.951410e+05
+Reference volume (M/rho)    : 4.941176e+05
+Scaling factor applied      : 9.993106e-01
+Rescaled mesh volume        : 4.941176e+05
+Relative error              : 0.000e+00
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 1.00000000e+00 -0.00000000e+00  0.00000000e+00]
+ [ 0.00000000e+00  1.00000000e+00  2.77555756e-16]
+ [ 0.00000000e+00 -2.22044605e-16  1.00000000e+00]]
+
+Rotation angles applied (deg):
+[np.float64(0.0), np.float64(0.0), np.float64(0.0)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00 -0.00000000e+00  0.00000000e+00]
+ [ 0.00000000e+00  1.00000000e+00  2.77555756e-16]
+ [ 0.00000000e+00 -2.22044605e-16  1.00000000e+00]]
+
+Alignment error (||R - I||): 4.191e-16
+✔ Mesh successfully aligned with principal axes.
+===================================================
+
+Plot saved to: Data/Lutetia/modified_shape_projection.png
+3D HTML plot saved to: Data/Lutetia/modified_shape_3d.html
+Vertices saved to: Data/Lutetia/modified_v.dat
+Faces saved to: Data/Lutetia/modified_f.dat

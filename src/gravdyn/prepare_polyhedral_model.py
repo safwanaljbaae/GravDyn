@@ -12,7 +12,7 @@ from gravdyn.polyhedral_model.compute_polyhedron_vectors import compute_polyhedr
 from gravdyn.polyhedral_model.compute_polyhedron_centroids import compute_polyhedron_centroids
 
 
-def prepare_polyhedral_model(
+def prepare_werner_model(
         asteroid: str,
         base_dir: str = "Data",
         verbose: bool = True,
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     p.add_argument("--verbose", type=bool, default=True, help="If True, prints progress information.")
     args = p.parse_args()
 
-    data = prepare_polyhedral_model(
+    data = prepare_werner_model(
         asteroid=args.asteroid,
         base_dir=args.base_dir,
         verbose=args.verbose,

@@ -5,6 +5,9 @@ The name of the asteroid: Bennu
 the considered mass is: 77930000000.0
 the considered density is: 1.25
 
+Vertices: 6146
+Faces: 12288
+
 ===== Centering Mesh =====
 Original center of mass: [8.94016230e-14 1.44299661e-13 6.67697851e-14]
 New center of mass: [8.94016230e-14 1.44299661e-13 6.67697851e-14]

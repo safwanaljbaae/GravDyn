@@ -1,0 +1,522 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\geometry{margin=1in}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    backgroundcolor=\color{white},
+    showstringspaces=false,
+    frame=single,
+    breaklines=true,
+    captionpos=b,
+}
+
+\title{GravDyn: Software for Computing Gravitational Potential Fields of Asteroids}
+\author{Dr. Safwan Aljbaae}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+GravDyn is a software package designed to compute and analyze the gravitational potential fields of asteroid-shaped bodies using multiple computational methods. This document provides a comprehensive description of the software architecture, implementation details, and the different variants available for computing gravitational potentials. The software supports polyhedral models, mascon (mass concentration) models, and spherical harmonic expansion methods, making it suitable for various planetary science and orbital dynamics applications.
+\end{abstract}
+
+\section{Introduction}
+
+Computing the gravitational potential of an asteroid is essential for understanding its orbital dynamics, tidal forces, and orbital stability. Asteroids often have irregular shapes, which require sophisticated computational methods beyond simple point-mass or spherical approximations.
+
+GravDyn provides three main computational approaches:
+\begin{enumerate}
+    \item \textbf{Classical Polyhedral Model} — Exact method based on the geometry of a triangulated polyhedron.
+    \item \textbf{Mascon (Mass Concentration) Model} — Discretized model using point masses distributed inside the body.
+    \item \textbf{Spherical Harmonic Expansion Method} — Series expansion approach for evaluating potentials at distant points.
+\end{enumerate}
+
+This document describes the architecture and implementation of each method and how they are integrated into a user-friendly graphical interface.
+
+\section{Software Architecture}
+
+GravDyn is organized into two primary components:
+\begin{itemize}
+    \item \textbf{Core Library} (\texttt{gravdyn}) — Python package in \texttt{src/gravdyn/}
+    \item \textbf{Graphical User Interface} (GUI) — Tkinter-based application in \texttt{gui/}
+\end{itemize}
+
+Figure~\ref{fig:architecture} shows the high-level architecture.
+
+\begin{figure}[htbp]
+\centering
+\scriptsize
+\begin{verbatim}
++------------------------------------------------------------------+
+|                         GravDyn Software                           |
++------------------------------------------------------------------+
+|                                                                  |
+|  +-------------------+      +-----------------------------------+  |
+|  |    GUI Layer      |      |      Core Library (gravdyn)         |  |
+|  |   (tkinter)      |      |                                   |  |
+|  |                  |      | +-------------------------------+ |  |
+|  | - ShapeViewerTab  |---> | | Shape Processing               | |  |
+|  | - PotentialTab   |      | | - shape_verification           | |  |
+|  | - SettingsTab    |      | | - prepare_polyhedral_model     | |  |
+|  |                  |      | | - load_vertices_faces         | |  |
+|  +-------------------+      | +-------------------------------+ |  |
+|           |                |                                   |  |
+|           v                | +-------------------------------+ |  |
+|  +-------------------+    | | | Potential Functions           | |  |
+|  |   Data Input     |    | | | - pot_point_mass           | |  |
+|  | - Shape models   |    | | | - pot_polyhedral_model    | |  |
+|  | - Mass/Density  |    | | | - pot_expansion           | |  |
+|  | - Grid params   |    | | | - batched_pot_mascon      | |  |
+|  +-------------------+    | | - compute_pseudo_potential | |  |
+|                          | +-------------------------------+ |  |
+|                          |                                   |  |
+|                          | +-------------------------------+ |  |
+|                          | | Auxiliary Functions        | |  |
+|                          | | - build_potential_derivatives|        |
+|                          | | - generate_layered_mascons | |  |
+|                          | | - plot_tools              | |  |
+|                          | +-------------------------------+ |  |
+|                          +-----------------------------------+  |
++------------------------------------------------------------------+
+\end{verbatim}
+\caption{GravDyn Software Architecture}
+\label{fig:architecture}
+\end{figure}
+
+\section{Input Data Format}
+
+Asteroid shape models are defined by two files:
+\begin{itemize}
+    \item \textbf{Vertices file} (\texttt{modified\_v.dat}) — $(N, 3)$ array of $x, y, z$ coordinates.
+    \item \textbf{Faces file} (\texttt{modified\_f.dat}) — $(M, 3)$ array of vertex indices forming triangular faces.
+\end{itemize}
+
+Example format for vertices:
+\begin{verbatim}
+ 1.2345678901e+00  2.3456789012e+00  3.4567890123e+00
+-1.0987654321e+00  4.5678901234e+00 -2.3456789012e+00
+ ...
+\end{verbatim}
+
+Example format for faces (1-indexed):
+\begin{verbatim}
+ 1  1234  5678
+ 123  4567  8910
+ ...
+\end{verbatim}
+
+The software expects faces in 1-based indexing (common in many shape models) and converts to 0-based internally.
+
+\section{Implementation of Methods}
+
+This section describes the mathematical formulation and computational implementation of each potential model.
+
+\subsection{Polyhedral Model}
+
+The polyhedral model provides an exact gravitational potential for bodies with arbitrary triangulated geometry. It is based on the formula of \cite{werner1994gravitational} and uses edge and face integrals.
+
+Let the body be represented by a list of triangular faces with vertices $\mathbf{v}_1, \mathbf{v}_2, \mathbf{v}_3$. The gravitational potential $U$ at field point $\mathbf{r}$ is
+
+\begin{equation}
+U = \frac{\sigma}{2} \sum_{\text{edges}} \mathbf{n}_f \cdot \mathbf{r}_e \ln\frac{r_1 + r_2 + L_e}{r_1 + r_2 - L_e} - \frac{\sigma}{2} \sum_{\text{faces}} (\mathbf{n}_f \cdot\mathbf{r}_f)^2 \, \omega_f,
+\end{equation}
+where:
+\begin{itemize}
+    \item $\sigma = GM/V$ is the uniform surface mass density (total mass divided by volume),
+    \item $\mathbf{n}_f$ is the outward unit normal to each face,
+    \item $\mathbf{r}_e$ is the centroid of each edge,
+    \item $L_e$ is the length of each edge,
+    \item $r_1, r_2$ are distances from the field point to edge endpoints,
+    \item $\mathbf{r}_f$ is the centroid of each face,
+    \item $\omega_f = 2\arctan\frac{ (\mathbf{r}_f \cdot (\mathbf{r}_2 \times \mathbf{r}_3) )}{ r_1 r_2 r_3 + r_1 (\mathbf{r}_2\cdot\mathbf{r}_3) + r_2 (\mathbf{r}_3\cdot\mathbf{r}_1) + r_3 (\mathbf{r}_1\cdot\mathbf{r}_2) }$ is the solid angle subtended by the face.
+\end{itemize}
+
+The acceleration is given by the gradient:
+\begin{equation}
+\mathbf{a} = -\nabla U .
+\end{equation}
+
+Implementation in \texttt{gravdyn}:
+
+\begin{enumerate}
+    \item Load vertices and faces from file.
+    \item Compute edges from faces (adjacent facet pairs).
+    \item Compute centroids of faces and edges.
+    \item Pre-compute geometric vectors:
+    \begin{itemize}
+        \item $\mathbf{e}_e$ — unit edge vectors,
+        \item $\mathbf{n}_f$ — face normals,
+        \item $\mathbf{n}_{f,e}$ — edge normals of adjacent faces,
+        \item $\mathbf{r}_{e,1}, \mathbf{r}_{e,2}$ — vectors from field point to edge endpoints,
+        \item $\mathbf{r}_{f,1}, \mathbf{r}_{f,2}, \mathbf{r}_{f,3}$ — vectors from field point to face vertices.
+    \end{itemize}
+    \item Evaluate potential and acceleration using vectorized JAX operations.
+    \item Batch process field points for efficiency.
+\end{enumerate}
+
+Key functions:
+\begin{lstlisting}[language=Python]
+from gravdyn import prepare_polyhedral_model, batched_polyhedral_potential
+
+# Prepare the model (run once)
+polyhedral_data = prepare_polyhedral_model(
+    asteroid="Apophis",
+    base_dir="Data",
+    verbose=False,
+)
+
+# Compute potential at multiple field points
+U, acc = batched_polyhedral_potential(
+    stat=points,           # (N, 3) array of field points
+    gm_body=gm_body,       # GM parameter
+    polyhedral_data=polyhedral_data,
+    batch_size=2000,
+)
+\end{lstlisting}
+
+The polyhedral method is computationally expensive but provides the highest accuracy for points near or inside the body.
+
+\subsection{Mascon (Mass Concentration) Model}
+
+The mascon model approximates the body as a collection of point masses (mass concentrations). Each mass element is placed at the center of mass of atetrahedral sub-region of the asteroid.
+
+The potential is computed as a simple sum:
+\begin{equation}
+U(\mathbf{r}) = \sum_i \frac{G m_i}{|\mathbf{r} - \mathbf{r}_i|},
+\end{equation}
+\begin{equation}
+\mathbf{a}(\mathbf{r}) = -\sum_i \frac{G m_i (\mathbf{r} - \mathbf{r}_i)}{|\mathbf{r} - \mathbf{r}_i|^3}.
+\end{equation}
+
+The asteroid is discretized radially into layers. Each triangular face, together with the origin, defines a tetrahedron. This tetrahedron is subdivided into radial layers, and the center of mass of each layer is computed exactly \cite{bennett2015gravitational}.
+
+Implementation in \texttt{generate\_layered\_mascons}:
+
+\begin{enumerate}
+    \item Load polyhedron vertices and faces.
+    \item For each face $(i, j, k)$:
+    \begin{itemize}
+        \item Form base tetrahedron with origin.
+        \item Divide radially into $N$ layers (where $N$ is the number of density values).
+        \item Compute volume and center of mass of each layer.
+    \end{itemize}
+    \item Compute masses from density values and rescale to match total mass.
+    \item Save mascons to CSV file.
+    \item Generate visualization of layer intersections.
+\end{enumerate}
+
+Key functions:
+
+\begin{lstlisting}[language=Python]
+from gravdyn import generate_layered_mascons, load_tetrahedron_data
+from gravdyn import batched_pot_mascon
+
+# Generate mascons (run once)
+df = generate_layered_mascons(
+    base_dir="Data",
+    asteroid="Apophis",
+    total_mass=5.3e10,        # kg
+    densities=[1500.0] * 10, # 10 layers, same density
+    output_csv="layered_mascons.csv",
+)
+
+# Load mascons as JAX arrays
+data_shape = load_tetrahedron_data(
+    base_dir="Data",
+    asteroid="Apophis",
+    tetrahedron_data_file="layered_mascons.csv",
+)
+
+# Compute potential
+U, acc = batched_pot_mascon(
+    stat=points,        # (N, 3) field points
+    data_shape=data_shape,
+    batch_size=20000,
+)
+\end{lstlisting}
+
+The mascon method is faster than the polyhedral method and provides good accuracy near the surface.
+
+\subsection{Spherical Harmonic Expansion Method}
+
+For distant field points ($r > R_{\text{body}}$), the potential can be approximated by a spherical harmonic expansion:
+
+\begin{equation}
+U(r, \theta, \phi) = \frac{GM}{r} \sum_{l=0}^{\infty} \sum_{m=-l}^{l} \left( \frac{R}{r} \right)^l C_{lm} Y_{lm}(\theta, \phi),
+\end{equation}
+where $Y_{lm}$ are spherical harmonics and $C_{lm}$ are coefficients.
+
+In GravDyn, the expansion is pre-computed from a high-resolution polyhedral model and stored as symbolic expressions. The derivatives are computed symbolically using SymPy.
+
+Implementation:
+
+\begin{enumerate}
+    \item Compute potential at many Surface points on a sphere around the body.
+    \item Fit spherical harmonic coefficients.
+    \item Compute symbolic derivatives using SymPy.
+    \item Generate Fortran code for fast evaluation.
+    \item Save symbolic expressions to text files.
+    \item Lambdify with JAX or NumPy backend for fast numerical evaluation.
+\end{enumerate}
+
+Key functions:
+
+\begin{lstlisting}[language=Python]
+from gravdyn import build_potential_derivatives, pot_expansion
+
+# Build derivatives (run once, loads or computes symbolic derivatives)
+f_pot, f_deriv = build_potential_derivatives(
+    name_central_body="Apophis",
+    pattern="pot_*.dat",
+    n_files=700,
+    gm0=mu,
+    lambdify_backend="jax",
+    base_dir="Data",
+)
+
+# Compute potential
+U, acc = pot_expansion(
+    stat=points,          # field points
+    f_pot_expansion=f_pot,
+    f_d_pot_expansion=f_deriv,  # [df/dx, df/dy, df/dz]
+)
+\end{lstlisting}
+
+This method is the fastest for distant points but loses accuracy near the surface.
+
+\section{Graphical User Interface (GUI)}
+
+The GUI provides an interactive interface for visualizing asteroid shapes and computing potentials. It is built with Tkinter and Matplotlib.
+
+Figure~\ref{fig:gui_screenshot} (textual representation) shows the interface layout:
+
+\begin{verbatim}
++-----------------------------------------------------------+
+|  GravDyn - Gravitational Potential Calculator              |
++-----------------------------------------------------------+
+|  [Shape Viewer] | [Potential] | [Settings]                 |
++-----------------------------------------------------------+
+|  +-----------+   +-----------------------------------+     |
+|  | Asteroid |   |                                   |     |
+|  | Selection   |   |     Visualization Area         |     |
+|  |           |   |                                   |     |
+|  | Model:   |   |  - 3D shape viewer              |     |
+|  | Polyhedral|   |  - Potential contour plots      |     |
+|  | Mascon   |   |  - Error analysis              |     |
+|  | Expansion|   |                                   |     |
+|  |           |   |                                   |     |
+|  | Grid:    |   |                                   |     |
+|  | XY plane |   |                                   |     |
+|  | YZ plane |   +-----------------------------------+     |
+|  | XZ plane |   |  [Compute & Plot Potential]             |     |
+|  +-----------+   +-----------------------------------+     |
++-----------------------------------------------------------+
+\end{verbatim}
+
+The GUI consists of three tabs:
+\begin{enumerate}
+    \item \textbf{Shape Viewer} — Load and visualize asteroid geometry.
+    \item \textbf{Potential} — Select model, configure grid, compute and plot potential.
+    \item \textbf{Settings} — Configure computational parameters.
+\end{enumerate}
+
+The GUI can also download asteroid data from a GitHub repository, making it easy to access pre-processed shape models.
+
+\section{Variants and Implementation Differences}
+
+Each method has specific characteristics:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+Method & Accuracy & Speed & Valid Range & Memory \\
+\hline
+Polyhedral & Exact & Slow & All & High \\
+Mascon & Approx. & Medium & Near surface & Medium \\
+Expansion & Approx. & Fast & Distant & Low \\
+\hline
+\end{tabular}
+\caption{Comparison of Potential Methods}
+\label{tab:comparison}
+\end{table}
+
+The methods differ in:
+\begin{itemize}
+    \item \textbf{Mathematical formulation} — Exact integrals vs. discretized sums vs. series expansions.
+    \item \textbf{Pre-computation requirements} — Polyhedral and mascon require geometry processing; expansion requires symbolic differentiation.
+    \item \textbf{Output} — All methods return potential $U$ and acceleration $\mathbf{a}$.
+    \item \textbf{Batching} — All methods support batched processing of field points for efficiency.
+    \item \textbf{Acceleration backend} — Uses JAX for just-in-time compilation and auto-differentiation.
+\end{itemize}
+
+The user can select the method based on:
+\begin{enumerate}
+    \item Position of field points (inside, near surface, or distant).
+    \item Required accuracy.
+    \item Computational resources.
+\end{enumerate}
+
+\section{Dependencies}
+
+GravDyn relies on the following key packages:
+\begin{itemize}
+    \item \textbf{JAX} — GPU/TPU-accelerated numerical computation.
+    \item \textbf{NumPy/SciPy} — Array operations and numerical methods.
+    \item \textbf{SymPy} — Symbolic mathematics for expansion method.
+    \item \textbf{Trimesh} — 3D mesh processing.
+    \item \textbf{Matplotlib} — Visualization.
+    \item \textbf{Tkinter} — GUI (included with Python).
+\end{itemize}
+
+Install with:
+\begin{verbatim}
+pip install -r requirements.txt
+\end{verbatim}
+
+Build executable with:
+\begin{verbatim}
+pyinstaller --onefile gravdyn_gui.py
+\end{verbatim}
+
+\section{Usage Example}
+
+A complete example using the polyhedral method:
+
+\begin{lstlisting}[language=Python]
+import numpy as np
+from gravdyn import (
+    prepare_polyhedral_model,
+    batched_polyhedral_potential,
+    compute_pseudo_potential,
+)
+
+# Parameters
+asteroid = "Bennu"
+R = 1.5  # km, grid radius
+N = 100  # points per axis
+
+# Create grid in XY plane
+x = np.linspace(-R, R, N)
+y = np.linspace(-R, R, N)
+X, Y = np.meshgrid(x, y)
+points = np.column_stack([X.ravel(), Y.ravel(), np.zeros(N*N)])
+
+# Prepare model
+model = prepare_polyhedral_model(
+    asteroid=asteroid,
+    base_dir="Data",
+    verbose=True,
+)
+
+# GM from mass
+mass = 5.309e10  # kg
+G = 6.674101262875753845e-20  # m^3 kg^-1 s^-2
+gm = mass * G
+
+# Compute potential
+U, acc = batched_polyhedral_potential(
+    stat=points,
+    gm_body=gm,
+    polyhedral_data=model,
+    batch_size=2000,
+)
+
+# Compute pseudo-potential (with rotation)
+pseudo = compute_pseudo_potential(
+    points,
+    U,
+    rot_period_hours=4.3,
+)
+
+# Plot results (using Matplotlib)
+import matplotlib.pyplot as plt
+plt.contour(X, Y, pseudo.reshape(N, N), levels=50)
+plt.gca().set_aspect('equal')
+plt.show()
+\end{lstlisting}
+
+\section{Data Directory Structure}
+
+The data directory follows this structure:
+
+\begin{verbatim}
+Data/
+  <AsteroidName>/
+    modified_v.dat        # Verified vertices
+    modified_f.dat        # Verified faces
+    shape_verification.log # Mass/density computation log
+    
+    # Optional data
+    layered_mascons.csv   # Mascon model (generated)
+    Pot_Expansion/
+      pot_*.dat          # Partial potentials
+      pot.for            # Fortran potential
+      d_*.for            # Fortran derivatives
+      d_*.txt            # Symbolic derivatives
+\end{verbatim}
+
+Each asteroid directory may contain pre-computed files to avoid recomputation.
+
+\section{Performance Considerations}
+
+\begin{itemize}
+    \item \textbf{JAX JIT compilation} — Functions are compiled to optimized XLA kernels.
+    \item \textbf{Batching} — Large point sets are processed in batches (default 2000) to manage memory.
+    \item \textbf{Disk caching} — Pre-computed geometry and symbolic expressions are cached.
+    \item \textbf{Parallel processing} — JAX operations can utilize multiple devices.
+\end{itemize}
+
+Typical performance on a modern CPU:
+\begin{itemize}
+    \item Polyhedral: $\sim$10,000 points/second
+    \item Mascon: $\sim$100,000 points/second
+    \item Expansion: $\sim$1,000,000 points/second
+\end{itemize}
+
+Performance varies with the number of faces and mascons.
+
+\section{Summary}
+
+GravDyn provides a comprehensive suite of tools for computing the gravitational potential of irregular asteroids. The three methods offer a trade-off between accuracy, speed, and range of validity. The GUI makes these methods accessible to users without programming experience, while the library interface supports integration into larger dynamical simulations.
+
+Key features:
+\begin{itemize}
+    \item Three complementary potential models.
+    \item GPU acceleration via JAX.
+    \item Pre-computed symbolic derivatives for fast expansion.
+    \item Interactive 3D shape visualization.
+    \item Remote data loading from GitHub.
+    \item Cross-validation between methods.
+\end{itemize}
+
+For the latest version and documentation, visit the repository at \url{https://github.com/safwanaljbaae/GravDyn}.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

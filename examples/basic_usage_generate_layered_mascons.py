@@ -12,7 +12,7 @@ def main() -> None:
     print("Current path:", current_path)
     asteroid = "Apophis"
     mass = 5.31e10
-    densities = [1.75e0, 1.75e0, 1.75e0, 1.75e0, 1.75e0, 1.75e0, 1.75e0, 1.75e0, 1.75e0, 1.75e0]
+    densities = [1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75]
     base_dir = '../Data/'
 
     df_mascons = generate_layered_mascons(

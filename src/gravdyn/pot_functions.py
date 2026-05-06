@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 # !===============================================================
-# !==   Dr. Safwan Aljbaae                                      ==
-# !==   October 2025                                            ==
+# !==   Dr. Safwan Aljbaae, Ph.D.                               ==
+# !==   Assistant Researcher                                    ==
+# !==   Instituto de Astronomía y Ciencias Planetarias - INCT   ==
+# !==   Universidad de Atacama - UDA                            ==
+# !==   Copayapu 485, Copiapó 1531772, Chile                    ==
+# !==   safwan.aljbaae@uda.cl                                   ==
+# !==   safwan.aljbaae@gmail.com                                ==
 # !===============================================================
 # python3 -m pip install -r requirements.txt                    ==
 # !===============================================================
@@ -11,15 +16,17 @@ import jax
 import numpy as np
 from jax import config
 import jax.numpy as jax_np
-from typing import Tuple, Union, Any, Mapping, Sequence, Callable
+from typing import Tuple, Union
+from typing import Any, Mapping
 
 ArrayLike = Union[list, tuple, jax_np.ndarray]
 
 config.update("jax_enable_x64", True)
 
+
 def pot_point_mass(
-    mu: float,
-    stat: ArrayLike
+        mu: float,
+        stat: ArrayLike
 ) -> Tuple[jax_np.ndarray, jax_np.ndarray]:
     """
     Compute gravitational potential and acceleration for one or more points.
@@ -51,7 +58,7 @@ def pot_point_mass(
     r = jax_np.linalg.norm(stat, axis=1)
     eps = 1e-35
 
-    p = mu / (r + eps)
+    p = -mu / (r + eps)
     acc = -mu * stat / (r[:, None] + eps) ** 3
 
     if single_point:
@@ -60,32 +67,32 @@ def pot_point_mass(
     return p, acc
 
 
-def pot_expansion(
-    stat: ArrayLike,
-    f_pot_expansion: Callable[..., float],
-    f_d_pot_expansion: Sequence[Callable[..., float]],
-) -> Tuple[jax_np.ndarray, jax_np.ndarray]:
+def pot_expansion(stat, f_pot_expansion, f_d_pot_expansion):
     """
     Compute potential and acceleration from the expansion model.
 
     Parameters
     ----------
-    stat : ArrayLike
+    stat : array-like
         A single point with shape (3,) or multiple points with shape (N, 3).
-    f_pot_expansion : Callable
-        Function for the potential, expected as: f_pot_expansion(x, y, z)
-    f_d_pot_expansion : Sequence[Callable]
-        Functions for the acceleration components:
-            - f_d_pot_expansion[0](x, y, z) for x-component
-            - f_d_pot_expansion[1](x, y, z) for y-component
-            - f_d_pot_expansion[2](x, y, z) for z-component
+    f_pot_expansion : callable
+        Function for the potential, expected as:
+            f_pot_expansion(x, y, z)
+    f_d_pot_expansion : sequence of callables
+        Functions for the acceleration components, expected as:
+            f_d_pot_expansion[0](x, y, z)
+            f_d_pot_expansion[1](x, y, z)
+            f_d_pot_expansion[2](x, y, z)
 
     Returns
     -------
-    p : jnp.ndarray
-        Potential, shape (N,) or scalar-like for single point.
-    acc : jnp.ndarray
-        Acceleration, shape (N, 3) or (3,) for single point.
+    p, acc
+        If input is a single point:
+            p   : scalar
+            acc : shape (3,)
+        If input is multiple points:
+            p   : shape (N,)
+            acc : shape (N, 3)
     """
     stat = jax_np.asarray(stat, dtype=jax_np.float64)
 
@@ -127,7 +134,7 @@ def pot_mascon_jax_v3(stat, data_shape, gm_body=0.0):
     Returns:
       p : scalar potential  (sum_i GM_i / r_i)   [same positive sign you used]
       a : (3,) acceleration (-sum_i GM_i * r_i / r_i^3)
-    
+
     calculation time: 0:00:00.000152 (h:mu:s)
 
     """
@@ -146,14 +153,14 @@ def pot_mascon_jax_v3(stat, data_shape, gm_body=0.0):
     dy = y - sy
     dz = z - sz
 
-    r2 = dx*dx + dy*dy + dz*dz
+    r2 = dx * dx + dy * dy + dz * dz
 
     # tiny clamp (constant of correct dtype)
     eps = jax_np.asarray(1e-30, dtype=r2.dtype)
     r2 = jax_np.maximum(r2, eps)
 
-    inv_r  = jax.lax.rsqrt(r2)          # 1/r
-    inv_r3 = inv_r * inv_r * inv_r      # 1/r^3
+    inv_r = jax.lax.rsqrt(r2)  # 1/r
+    inv_r3 = inv_r * inv_r * inv_r  # 1/r^3
 
     # Per-element GM (your convention)
     GM_i = mu + jax_np.asarray(gm_body, dtype=mu.dtype)
@@ -171,10 +178,18 @@ def pot_mascon_jax_v3(stat, data_shape, gm_body=0.0):
     return p, a
 
 
+import jax
+import jax.numpy as jax_np
+from typing import Mapping, Any, Tuple, Union
+
+ArrayLike = Union[list, tuple, jax_np.ndarray]
+
+
+@jax.jit
 def pot_mascon_jax_v4(
-    stat: ArrayLike,
-    data_shape: Mapping[str, Any],
-    gm_body: float = 0.0,
+        stat: ArrayLike,
+        data_shape: Mapping[str, Any],
+        gm_body: float = 0.0,
 ) -> Tuple[jax_np.ndarray, jax_np.ndarray]:
     """
     Compute gravitational potential and acceleration from a mascon model
@@ -220,12 +235,12 @@ def pot_mascon_jax_v4(
         raise ValueError("stat must have shape (3,) or (N, 3)")
 
     # stat: (N, 3)
-    sx = stat[:, 0:1]   # (N, 1)
+    sx = stat[:, 0:1]  # (N, 1)
     sy = stat[:, 1:2]
     sz = stat[:, 2:3]
 
     # mascons: (M,)
-    dx = x[None, :] - sx   # (N, M)
+    dx = x[None, :] - sx  # (N, M)
     dy = y[None, :] - sy
     dz = z[None, :] - sz
 
@@ -234,53 +249,36 @@ def pot_mascon_jax_v4(
     eps = jax_np.asarray(1e-30, dtype=r2.dtype)
     r2 = jax_np.maximum(r2, eps)
 
-    inv_r = jax.lax.rsqrt(r2)              # (N, M)
-    inv_r3 = inv_r * inv_r * inv_r         # (N, M)
+    inv_r = jax.lax.rsqrt(r2)  # (N, M)
+    inv_r3 = inv_r * inv_r * inv_r  # (N, M)
 
-    GM_i = mu + jax_np.asarray(gm_body, dtype=mu.dtype)   # (M,)
+    GM_i = mu + jax_np.asarray(gm_body, dtype=mu.dtype)  # (M,)
 
     # Potential for each field point
-    p = jax_np.sum(GM_i[None, :] * inv_r, axis=1)         # (N,)
+    p = jax_np.sum(GM_i[None, :] * inv_r, axis=1)  # (N,)
 
     # Acceleration for each field point
-    scale = GM_i[None, :] * inv_r3                        # (N, M)
-    ax = jax_np.sum(dx * scale, axis=1)                   # (N,)
+    scale = GM_i[None, :] * inv_r3  # (N, M)
+    ax = jax_np.sum(dx * scale, axis=1)  # (N,)
     ay = jax_np.sum(dy * scale, axis=1)
     az = jax_np.sum(dz * scale, axis=1)
 
-    a = jax_np.stack((ax, ay, az), axis=1)                # (N, 3)
+    a = jax_np.stack((ax, ay, az), axis=1)  # (N, 3)
 
     if single_point:
         return p[0], a[0]
 
     return p, a
 
+
 def batched_pot_mascon(
-    stat: ArrayLike,
-    data_shape: Mapping[str, Any],
-    gm_body: float = 0.0,
-    batch_size: int = 2000,
-) -> Tuple[np.ndarray, np.ndarray]:
+        stat,
+        data_shape,
+        gm_body=0.0,
+        batch_size=2000,
+):
     """
     Evaluate mascon potential/acceleration in batches.
-
-    Parameters
-    ----------
-    stat : ArrayLike
-        Field point(s), shape (3,) or (N, 3).
-    data_shape : Mapping[str, Any]
-        Dictionary with 'x', 'y', 'z', 'mu' arrays.
-    gm_body : float
-        Additional GM term, by default 0.0.
-    batch_size : int
-        Number of points per batch, by default 2000.
-
-    Returns
-    -------
-    p_all : np.ndarray
-        Potential array, shape (N,).
-    acc_all : np.ndarray
-        Acceleration array, shape (N, 3).
     """
     stat = np.asarray(stat, dtype=np.float64)
 
@@ -306,10 +304,10 @@ def batched_pot_mascon(
     return p_all, a_all
 
 
-def pot_polyhedral_model(
-    gm_body: float,
-    stat: list[float] | list[list[float]] | np.ndarray | jax_np.ndarray,
-    polyhedral_data: Mapping[str, Any],
+def pot_werner_model(
+        gm_body: float,
+        stat: list[float] | list[list[float]] | np.ndarray | jax_np.ndarray,
+        polyhedral_data: Mapping[str, Any],
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute gravitational potential and acceleration with the polyhedral model.
@@ -474,32 +472,32 @@ def pot_polyhedral_model(
     return U_b, A_b
 
 
-def batched_polyhedral_potential(
-    stat: np.ndarray,
-    gm_body: float,
-    polyhedral_data: Mapping[str, Any],
-    batch_size: int = 2000,
-) -> Tuple[np.ndarray, np.ndarray]:
+def batched_wrener_potential(
+        stat,
+        gm_body,
+        polyhedral_data,
+        batch_size=2000,
+):
     """
     Evaluate polyhedral potential and acceleration in batches.
 
     Parameters
     ----------
     stat : np.ndarray
-        Array of shape (N, 3).
+        Array of shape (N, 3)
     gm_body : float
-        Gravitational parameter.
-    polyhedral_data : Mapping[str, Any]
-        Prepared polyhedral model data.
+        Gravitational parameter
+    polyhedral_data : dict
+        Prepared polyhedral model data
     batch_size : int
-        Number of points per batch, by default 2000.
+        Number of points per batch
 
     Returns
     -------
     p_all : np.ndarray
-        Potential array of shape (N,).
+        Potential array of shape (N,)
     acc_all : np.ndarray
-        Acceleration array of shape (N, 3).
+        Acceleration array of shape (N, 3)
     """
     n_total = stat.shape[0]
 
@@ -509,7 +507,7 @@ def batched_polyhedral_potential(
     for i in range(0, n_total, batch_size):
         batch = stat[i:i + batch_size]
 
-        p_batch, acc_batch = pot_polyhedral_model(
+        p_batch, acc_batch = pot_werner_model(
             gm_body=gm_body,
             stat=batch,
             polyhedral_data=polyhedral_data,
@@ -528,7 +526,6 @@ def batched_polyhedral_potential(
     acc_all = np.concatenate(acc_batches, axis=0)
 
     return p_all, acc_all
-
 
 
 def format_time(seconds):
