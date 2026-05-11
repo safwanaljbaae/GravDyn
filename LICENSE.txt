@@ -1,0 +1,7 @@
+Copyright (c) 2026 Safwan Aljbaae
+
+All rights reserved.
+
+This software is provided for academic and research use only.
+Modification, redistribution, or commercial use without explicit
+permission from the authors is prohibited.

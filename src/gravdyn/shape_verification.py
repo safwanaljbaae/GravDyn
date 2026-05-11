@@ -9,9 +9,9 @@ from gravdyn.plot_tools import save_mesh_projections, save_mesh_3d_html, save_al
 
 
 class Tee:
-    def __init__(self, filename):
-        self.file = open(filename, "w")
-        self.stdout = sys.stdout
+    def __init__(self, stdout, filename):
+        self.stdout = stdout
+        self.file = open(filename, "w", encoding="utf-8", errors="replace")
 
     def write(self, data):
         self.stdout.write(data)
@@ -20,6 +20,9 @@ class Tee:
     def flush(self):
         self.stdout.flush()
         self.file.flush()
+
+    def close(self):
+        self.file.close()
 
 
 def principal_axes(mesh):
@@ -69,7 +72,7 @@ def principal_axes(mesh):
     eigenvalues = eigenvalues[indices]
     eigenvectors = eigenvectors[:, indices]
 
-    # fiend the angles between each axis of coordinates and the direction of the principal moments of inertia
+    # find the angles between each axis of coordinates and the direction of the principal moments of inertia
     angles = []
     for i in range(len(eigenvectors)):
         a = eigenvectors[i]
@@ -143,9 +146,9 @@ def report_principal_axes(eigenvectors, new_eigenvectors, angles):
     print("\nAlignment error (||R - I||): {:.3e}".format(error))
 
     if error < 1e-6:
-        print("✔ Mesh successfully aligned with principal axes.")
+        print("Mesh successfully aligned with principal axes.")
     else:
-        print("⚠ Warning: alignment may be inaccurate.")
+        print("Warning: alignment may be inaccurate.")
 
     print("===================================================\n")
 
@@ -498,7 +501,7 @@ def shape_verification(
         asteroid_name: str,
         mass: float,
         density: float,
-        base_dir: float,
+        base_dir: str,
         vertices_file: str,
         faces_file: str
 ) -> None:
@@ -570,114 +573,127 @@ def shape_verification(
     """
 
     log_file = Path(base_dir) / asteroid_name / "shape_verification.log"
-    tee = Tee(log_file)
-    sys.stdout = tee
 
-    vertices_path = Path(base_dir) / asteroid_name / vertices_file
-    faces_path = Path(base_dir) / asteroid_name / faces_file
+    original_stdout = sys.stdout
+    tee = Tee(original_stdout, log_file)
 
-    vertices = load_vertices(vertices_file=str(vertices_path))
-    faces = load_faces(faces_file=str(faces_path))
+    try:
+        sys.stdout = tee
 
-    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+        vertices_path = Path(base_dir) / asteroid_name / vertices_file
+        faces_path = Path(base_dir) / asteroid_name / faces_file
 
-    results_diagnose_polyhedral_mesh = diagnose_polyhedral_mesh(mesh, verbose=False)
+        vertices = load_vertices(vertices_file=str(vertices_path))
+        faces = load_faces(faces_file=str(faces_path))
 
-    if len(results_diagnose_polyhedral_mesh['problems']):
-        print(results_diagnose_polyhedral_mesh['problems'])
+        mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+
+        results_diagnose_polyhedral_mesh = diagnose_polyhedral_mesh(mesh, verbose=False)
+
+        if len(results_diagnose_polyhedral_mesh['problems']):
+            print(results_diagnose_polyhedral_mesh['problems'])
+            output_dir = Path(base_dir) / asteroid_name
+            output_files = save_all_mesh_problem_html(mesh, output_dir=output_dir)
+            raise RuntimeError(f"Mesh has topological problems: {results_diagnose_polyhedral_mesh['problems']}")
+
+        save_mesh_projections(mesh, asteroid_name, base_dir, file_nam="shape_projection.png")
+        save_mesh_3d_html(mesh, asteroid_name, base_dir, file_nam="shape_3d.html")
+
+        # Compute center of mass (before)
+        center_before = mesh.center_mass
+        print(f"==========================")
+        print(f"The name of the asteroid: {asteroid_name}")
+        print(f"the considered mass is: {mass}")
+        print(f"the considered density is: {density}")
+        print()
+        print(f"Vertices: {len(vertices)}")
+        print(f"Faces: {len(faces)}")
+
+        print("\n===== Centering Mesh =====")
+        print(f"Original center of mass: {center_before}")
+
+        # --- Apply translation to move COM to origin
+        mesh.apply_translation(-center_before)
+
+        # Compute center of mass (after)
+        center_after = mesh.center_mass
+
+        print(f"New center of mass: {center_after}")
+
+        # Report result clearly
+        if np.allclose(center_after, [0, 0, 0], atol=1e-8):
+            print("Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).")
+        else:
+            print("Warning: mesh recentering may be inaccurate.")
+            print("   Residual center of mass:", center_after)
+        print("=================================\n")
+
+        # --- Calculate the volume of the mesh
+        volume = mesh.volume
+
+        # Conversion factor
+        conversion_factor = 1.0e-12
+
+        reference_volume = (mass / density) * conversion_factor
+
+        # Rescale factor
+        scale_factor = (reference_volume / volume) ** (1 / 3)
+
+        print("\n===== Mesh Rescaling Report =====")
+        print(f"Original mesh volume        : {volume:.6e}")
+        print(f"Reference volume (M/rho)    : {reference_volume:.6e}")
+        print(f"Scaling factor applied      : {scale_factor:.6e}")
+
+        # Apply scaling
+        mesh.apply_scale(scale_factor)
+
+        # New volume
+        new_volume = mesh.volume
+
+        print(f"Rescaled mesh volume        : {new_volume:.6e}")
+        volume_equivalent_diameter = ((3.0*new_volume)/(4.0*np.pi)) **  (1 / 3)
+
+        print(f"volume_equivalent_diameter  : {volume_equivalent_diameter:.6e}")
+
+        # Consistency check
+        relative_error = abs(new_volume - reference_volume) / reference_volume
+        print(f"Relative error              : {relative_error:.3e}")
+
+        print("=================================\n")
+
+        eigenvectors, M_4x4, angles = principal_axes(mesh)
+
+        mesh.apply_transform(M_4x4)
+
+        new_eigenvectors, new_M_4x4, new_angles = principal_axes(mesh)
+
+        report_principal_axes(eigenvectors, new_eigenvectors, angles)
+
+        save_mesh_projections(mesh, asteroid_name, base_dir, file_nam="modified_shape_projection.png")
+        save_mesh_3d_html(mesh, asteroid_name, base_dir, file_nam="modified_shape_3d.html")
+
+        # Build full output directory
         output_dir = Path(base_dir) / asteroid_name
-        output_files = save_all_mesh_problem_html(mesh, output_dir=output_dir)
-        exit()
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    save_mesh_projections(mesh, asteroid_name, base_dir, file_nam="shape_projection.png")
-    save_mesh_3d_html(mesh, asteroid_name, base_dir, file_nam="shape_3d.html")
+        # Define full file path (with extension!)
+        output_filename = output_dir / "modified_v.dat"
+        precision = 5
+        np.savetxt(
+            output_filename,
+            mesh.vertices,
+            fmt=f"%.{precision}e"
+        )
+        print(f"Vertices saved to: {output_filename}")
 
-    # Compute center of mass (before)
-    center_before = mesh.center_mass
-    print(f"==========================")
-    print(f"The name of the asteroid: {asteroid_name}")
-    print(f"the considered mass is: {mass}")
-    print(f"the considered density is: {density}")
-    print()
-    print(f"Vertices: {len(vertices)}")
-    print(f"Faces: {len(faces)}")
+        output_filename = output_dir / "modified_f.dat"
+        np.savetxt(
+            output_filename,
+            mesh.faces,
+            fmt="%d"
+        )
+        print(f"Faces saved to: {output_filename}")
 
-    print("\n===== Centering Mesh =====")
-    print(f"Original center of mass: {center_before}")
-
-    # --- Apply translation to move COM to origin
-    mesh.apply_translation(-center_before)
-
-    # Compute center of mass (after)
-    center_after = mesh.center_mass
-
-    print(f"New center of mass: {center_after}")
-
-    # Report result clearly
-    if np.allclose(center_after, [0, 0, 0], atol=1e-8):
-        print("✔ Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).")
-    else:
-        print("Warning: mesh recentering may be inaccurate.")
-        print("   Residual center of mass:", center_after)
-    print("=================================\n")
-
-    # --- Calculate the volume of the mesh
-    volume = mesh.volume
-    reference_volume = (mass / density) * 1.0e-12
-
-    # Rescale factor
-    scale_factor = (reference_volume / volume) ** (1 / 3)
-
-    print("\n===== Mesh Rescaling Report =====")
-    print(f"Original mesh volume        : {volume:.6e}")
-    print(f"Reference volume (M/rho)    : {reference_volume:.6e}")
-    print(f"Scaling factor applied      : {scale_factor:.6e}")
-
-    # Apply scaling
-    mesh.apply_scale(scale_factor)
-
-    # New volume
-    new_volume = mesh.volume
-
-    print(f"Rescaled mesh volume        : {new_volume:.6e}")
-
-    # Consistency check
-    relative_error = abs(new_volume - reference_volume) / reference_volume
-    print(f"Relative error              : {relative_error:.3e}")
-
-    print("=================================\n")
-
-    eigenvectors, M_4x4, angles = principal_axes(mesh)
-
-    mesh.apply_transform(M_4x4)
-
-    new_eigenvectors, new_M_4x4, new_angles = principal_axes(mesh)
-
-    report_principal_axes(eigenvectors, new_eigenvectors, angles)
-
-    save_mesh_projections(mesh, asteroid_name, base_dir, file_nam="modified_shape_projection.png")
-    save_mesh_3d_html(mesh, asteroid_name, base_dir, file_nam="modified_shape_3d.html")
-
-    # Build full output directory
-    output_dir = Path(base_dir) / asteroid_name
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Define full file path (with extension!)
-    output_filename = output_dir / "modified_v.dat"
-    precision = 5
-    np.savetxt(
-        output_filename,
-        mesh.vertices,
-        fmt=f"%.{precision}e"
-    )
-    print(f"Vertices saved to: {output_filename}")
-
-    output_filename = output_dir / "modified_f.dat"
-    np.savetxt(
-        output_filename,
-        mesh.faces,
-        fmt="%d"
-    )
-    print(f"Faces saved to: {output_filename}")
-    sys.stdout = tee.stdout
-    tee.file.close()
+    finally:
+        sys.stdout = original_stdout
+        tee.close()

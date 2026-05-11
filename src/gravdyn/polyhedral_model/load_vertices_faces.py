@@ -17,6 +17,6 @@ def load_vertices_faces(file_vertices, file_faces):
     V = _load_dat(file_vertices).astype(np.float64)
     F = _load_dat(file_faces).astype(np.int64)
     # Convert 1-based -> 0-based if needed
-    if F.min() == 0:
-        F = F + 1
+    if F.min() == 1:
+        F = F - 1
     return V, F

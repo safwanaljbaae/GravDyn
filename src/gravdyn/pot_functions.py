@@ -127,66 +127,7 @@ def pot_expansion(stat, f_pot_expansion, f_d_pot_expansion):
 
 
 @jax.jit
-def pot_mascon_jax_v3(stat, data_shape, gm_body=0.0):
-    """
-    Potential and acceleration from a tetrahedron-center shape model.
-
-    Returns:
-      p : scalar potential  (sum_i GM_i / r_i)   [same positive sign you used]
-      a : (3,) acceleration (-sum_i GM_i * r_i / r_i^3)
-
-    calculation time: 0:00:00.000152 (h:mu:s)
-
-    """
-
-    # Assume callers already pass JAX arrays; these asarray() are very cheap but
-    # you can remove them if you guarantee JAX types upstream.
-    x = jax_np.asarray(data_shape['x'])
-    y = jax_np.asarray(data_shape['y'])
-    z = jax_np.asarray(data_shape['z'])
-    mu = jax_np.asarray(data_shape['mu'])
-
-    sx, sy, sz = jax_np.asarray(stat, dtype=x.dtype)
-
-    # r_vec components (no (3,N) stack)
-    dx = x - sx
-    dy = y - sy
-    dz = z - sz
-
-    r2 = dx * dx + dy * dy + dz * dz
-
-    # tiny clamp (constant of correct dtype)
-    eps = jax_np.asarray(1e-30, dtype=r2.dtype)
-    r2 = jax_np.maximum(r2, eps)
-
-    inv_r = jax.lax.rsqrt(r2)  # 1/r
-    inv_r3 = inv_r * inv_r * inv_r  # 1/r^3
-
-    # Per-element GM (your convention)
-    GM_i = mu + jax_np.asarray(gm_body, dtype=mu.dtype)
-
-    # Potential: dot is faster than sum of product
-    p = jax_np.dot(GM_i, inv_r)
-
-    # Acceleration components via dot products (no broadcasted (3,N) tmp)
-    scale = GM_i * inv_r3
-    ax = jax_np.dot(dx, scale)
-    ay = jax_np.dot(dy, scale)
-    az = jax_np.dot(dz, scale)
-    a = jax_np.array([ax, ay, az], dtype=x.dtype)
-
-    return p, a
-
-
-import jax
-import jax.numpy as jax_np
-from typing import Mapping, Any, Tuple, Union
-
-ArrayLike = Union[list, tuple, jax_np.ndarray]
-
-
-@jax.jit
-def pot_mascon_jax_v4(
+def pot_mascon_jax(
         stat: ArrayLike,
         data_shape: Mapping[str, Any],
         gm_body: float = 0.0,
@@ -283,14 +224,14 @@ def batched_pot_mascon(
     stat = np.asarray(stat, dtype=np.float64)
 
     if stat.ndim == 1:
-        return pot_mascon_jax_v4(stat, data_shape, gm_body)
+        return pot_mascon_jax(stat, data_shape, gm_body)
 
     p_batches = []
     a_batches = []
 
     for i in range(0, len(stat), batch_size):
         batch = stat[i:i + batch_size]
-        p_batch, a_batch = pot_mascon_jax_v4(batch, data_shape, gm_body)
+        p_batch, a_batch = pot_mascon_jax(batch, data_shape, gm_body)
 
         p_batch = jax.block_until_ready(p_batch)
         a_batch = jax.block_until_ready(a_batch)
@@ -302,6 +243,87 @@ def batched_pot_mascon(
     a_all = np.concatenate(a_batches, axis=0)
 
     return p_all, a_all
+
+
+@jax.jit
+def _compute_werner_gravity_batch(
+    points_batch: jax_np.ndarray,
+    sigma: float,
+    centroid_e_j: jax_np.ndarray,
+    centroid_f_j: jax_np.ndarray,
+    edge_len_j: jax_np.ndarray,
+    n_f_j: jax_np.ndarray,
+    n_f_e_j: jax_np.ndarray,
+    n_fp_e_j: jax_np.ndarray,
+    r_e1_j: jax_np.ndarray,
+    r_e2_j: jax_np.ndarray,
+    r_f1_j: jax_np.ndarray,
+    r_f2_j: jax_np.ndarray,
+    r_f3_j: jax_np.ndarray,
+    n_f1_for_edge: jax_np.ndarray,
+    n_f2_for_edge: jax_np.ndarray,
+):
+    r_vec = points_batch[:, None, :]  # (B, 1, 3)
+
+    # Edge terms
+    re = centroid_e_j - r_vec
+    diff1 = r_e1_j - r_vec
+    diff2 = r_e2_j - r_vec
+
+    r1 = jax_np.linalg.norm(diff1, axis=2)
+    r2 = jax_np.linalg.norm(diff2, axis=2)
+
+    eps = 1.0e-15
+    denom_edge = jax_np.maximum(r1 + r2 - edge_len_j, eps)
+    numer_edge = r1 + r2 + edge_len_j
+    L_e = jax_np.log(numer_edge / denom_edge)
+
+    # Face terms
+    rf = centroid_f_j - points_batch[:, None, :]
+    rf1 = r_f1_j - r_vec
+    rf2 = r_f2_j - r_vec
+    rf3 = r_f3_j - r_vec
+
+    d1 = jax_np.linalg.norm(rf1, axis=2)
+    d2 = jax_np.linalg.norm(rf2, axis=2)
+    d3 = jax_np.linalg.norm(rf3, axis=2)
+
+    cross_23 = jax_np.cross(rf2, rf3, axis=2)
+    numer = jax_np.sum(rf1 * cross_23, axis=2)
+    dot23 = jax_np.sum(rf2 * rf3, axis=2)
+    dot31 = jax_np.sum(rf3 * rf1, axis=2)
+    dot12 = jax_np.sum(rf1 * rf2, axis=2)
+    denom = d1 * d2 * d3 + d1 * dot23 + d2 * dot31 + d3 * dot12
+
+    omega = 2.0 * jax_np.arctan2(numer, denom)
+
+    # Edge contribution sums
+    dot1 = jax_np.sum(re * n_f1_for_edge, axis=2)
+    dot2 = jax_np.sum(re * n_f_e_j, axis=2)
+    dot3 = jax_np.sum(re * n_f2_for_edge, axis=2)
+    dot4 = jax_np.sum(re * n_fp_e_j, axis=2)
+
+    sum_e_U = jax_np.sum((dot1 * dot2 + dot3 * dot4) * L_e, axis=1)
+    sum_e_A = jax_np.sum(
+        (dot2[:, :, None] * n_f1_for_edge + dot4[:, :, None] * n_f2_for_edge)
+        * L_e[:, :, None],
+        axis=1,
+    )
+
+    # Face contribution sums
+    nf_dot_rf = jax_np.sum(n_f_j * rf, axis=2)
+    sum_f_U = jax_np.sum((nf_dot_rf ** 2) * omega, axis=1)
+    sum_f_A = jax_np.sum(
+        (nf_dot_rf[:, :, None] * n_f_j) * omega[:, :, None],
+        axis=1,
+    )
+    sum_omega = jax_np.sum(omega, axis=1)
+
+    U_batch = 0.5 * sigma * (sum_e_U - sum_f_U)
+    A_batch = -sigma * (sum_e_A - sum_f_A)
+    Lap_batch = -sigma * sum_omega
+
+    return U_batch, A_batch, Lap_batch
 
 
 def pot_werner_model(
@@ -368,14 +390,8 @@ def pot_werner_model(
         raise ValueError("stat must have shape (3,) or (N, 3)")
 
     # Volume and density computation
-    volume = 0.0
-    for idx in range(faces.shape[0]):
-        i1, i2, i3 = faces[idx] - 1
-        v1 = vertices[i1]
-        v2 = vertices[i2]
-        v3 = vertices[i3]
-        volume += np.dot(v1, np.cross(v2, v3)) / 6.0
-    volume = abs(volume)
+    v = vertices[faces]  # (M, 3, 3)                                                                                                                                                       LSP
+    volume = np.abs(np.sum(v[:, 0] * np.cross(v[:, 1], v[:, 2]))) / 6.0
 
     sigma = gm_body / volume
 
@@ -397,71 +413,14 @@ def pot_werner_model(
     n_f1_for_edge = jax_np.asarray(n_f[face1_idx], dtype=jax_np.float64)
     n_f2_for_edge = jax_np.asarray(n_f[face2_idx], dtype=jax_np.float64)
 
-    @jax.jit
-    def compute_gravity_batch(points_batch: jax_np.ndarray):
-        r_vec = points_batch[:, None, :]  # (B, 1, 3)
-
-        # Edge terms
-        re = centroid_e_j - r_vec
-        diff1 = r_e1_j - r_vec
-        diff2 = r_e2_j - r_vec
-
-        r1 = jax_np.linalg.norm(diff1, axis=2)
-        r2 = jax_np.linalg.norm(diff2, axis=2)
-
-        eps = 1.0e-15
-        denom_edge = jax_np.maximum(r1 + r2 - edge_len_j, eps)
-        numer_edge = r1 + r2 + edge_len_j
-        L_e = jax_np.log(numer_edge / denom_edge)
-
-        # Face terms
-        rf = centroid_f_j - points_batch[:, None, :]
-        rf1 = r_f1_j - r_vec
-        rf2 = r_f2_j - r_vec
-        rf3 = r_f3_j - r_vec
-
-        d1 = jax_np.linalg.norm(rf1, axis=2)
-        d2 = jax_np.linalg.norm(rf2, axis=2)
-        d3 = jax_np.linalg.norm(rf3, axis=2)
-
-        cross_23 = jax_np.cross(rf2, rf3, axis=2)
-        numer = jax_np.sum(rf1 * cross_23, axis=2)
-        dot23 = jax_np.sum(rf2 * rf3, axis=2)
-        dot31 = jax_np.sum(rf3 * rf1, axis=2)
-        dot12 = jax_np.sum(rf1 * rf2, axis=2)
-        denom = d1 * d2 * d3 + d1 * dot23 + d2 * dot31 + d3 * dot12
-
-        omega = 2.0 * jax_np.arctan2(numer, denom)
-
-        # Edge contribution sums
-        dot1 = jax_np.sum(re * n_f1_for_edge, axis=2)
-        dot2 = jax_np.sum(re * n_f_e_j, axis=2)
-        dot3 = jax_np.sum(re * n_f2_for_edge, axis=2)
-        dot4 = jax_np.sum(re * n_fp_e_j, axis=2)
-
-        sum_e_U = jax_np.sum((dot1 * dot2 + dot3 * dot4) * L_e, axis=1)
-        sum_e_A = jax_np.sum(
-            (dot2[:, :, None] * n_f1_for_edge + dot4[:, :, None] * n_f2_for_edge)
-            * L_e[:, :, None],
-            axis=1,
-        )
-
-        # Face contribution sums
-        nf_dot_rf = jax_np.sum(n_f_j * rf, axis=2)
-        sum_f_U = jax_np.sum((nf_dot_rf ** 2) * omega, axis=1)
-        sum_f_A = jax_np.sum(
-            (nf_dot_rf[:, :, None] * n_f_j) * omega[:, :, None],
-            axis=1,
-        )
-        sum_omega = jax_np.sum(omega, axis=1)
-
-        U_batch = 0.5 * sigma * (sum_e_U - sum_f_U)
-        A_batch = -sigma * (sum_e_A - sum_f_A)
-        Lap_batch = -sigma * sum_omega
-
-        return U_batch, A_batch, Lap_batch
-
-    U_b, A_b, _ = compute_gravity_batch(stat)
+    U_b, A_b, _ = _compute_werner_gravity_batch(
+        stat, sigma,
+        centroid_e_j, centroid_f_j, edge_len_j,
+        n_f_j, n_f_e_j, n_fp_e_j,
+        r_e1_j, r_e2_j,
+        r_f1_j, r_f2_j, r_f3_j,
+        n_f1_for_edge, n_f2_for_edge,
+    )
 
     U_b = np.asarray(U_b)
     A_b = np.asarray(A_b)
@@ -472,7 +431,7 @@ def pot_werner_model(
     return U_b, A_b
 
 
-def batched_wrener_potential(
+def batched_werner_potential(
         stat,
         gm_body,
         polyhedral_data,

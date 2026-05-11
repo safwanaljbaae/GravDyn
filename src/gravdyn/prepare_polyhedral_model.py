@@ -84,7 +84,7 @@ def prepare_werner_model(
     if not os.path.exists(files.file_edges):
         if verbose:
             print(f"        Computing edges from faces...")
-        edges = create_edges_from_facets(faces, files, verbose)
+        edges = create_edges_from_facets(faces, files)
     else:
         if verbose:
             print(f"        Edges file already exists at {files.file_edges}")

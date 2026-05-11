@@ -2,7 +2,7 @@ from gravdyn.shape_verification import shape_verification
 from gravdyn.prepare_polyhedral_model import prepare_werner_model
 from gravdyn.pot_functions import pot_point_mass
 from gravdyn.pot_functions import pot_werner_model
-from gravdyn.pot_functions import batched_wrener_potential
+from gravdyn.pot_functions import batched_werner_potential
 from gravdyn.pot_functions import batched_pot_mascon
 from gravdyn.pot_functions import pot_expansion
 from gravdyn.pot_functions import compute_pseudo_potential
@@ -16,7 +16,7 @@ __all__ = [
     "shape_verification",
     "prepare_werner_model",
     "pot_point_mass",
-    "batched_wrener_potential",
+    "batched_werner_potential",
     "batched_pot_mascon",
     "pot_werner_model",
     "pot_expansion",

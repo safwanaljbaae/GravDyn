@@ -113,13 +113,13 @@ def generate_fortran_code(expression, function_name):
 
     # Write the formatted code to a Fortran file
     with open(f'{function_name}.for', 'w') as file:
-        file.write(f'      REAL*8 function {function_name.split('/')[-1]}(x, y, z)\n')
+        file.write(f"      REAL*8 function {function_name.split('/')[-1]}(x, y, z)\n")
         file.write('      REAL*8 x, y, z\n')
         file.write('      REAL*8 result\n')
         file.write('      result = \n')
         for line in fortran_code_lines:
             file.write(f'{line}\n')
-        file.write(f'      {function_name.split('/')[-1]} = result\n')
+        file.write(f"      {function_name.split('/')[-1]} = result\n")
         file.write('      return\n')
         file.write('      end\n')
 
@@ -181,7 +181,7 @@ def build_potential_derivatives(
             f"No potential data found locally at '{folder}'.\n"
             "We will check the GitHub repository of the package."
         )
-        files = list_github_folder_files(
+        list_files = list_github_folder_files(
             owner="safwanaljbaae",
             repo="GravDyn",
             path=f"Data/{name_central_body}/Pot_Expansion",
@@ -190,7 +190,7 @@ def build_potential_derivatives(
         files = download_github_folder(
             owner="safwanaljbaae",
             repo="GravDyn",
-            path=f"Data/Apophis/Pot_Expansion",
+            path=f"Data/{name_central_body}/Pot_Expansion",
             branch="feature-test",
             output_dir=f'{base_dir}/{name_central_body}/Pot_Expansion'
         )
@@ -296,23 +296,4 @@ def build_potential_derivatives(
         print("    Derivatives are ready.")
 
     return f_pot_expansions, f_d_pot_expansion
-
-
-# ---------------------------
-# Example usage
-# ---------------------------
-if __name__ == "__main__":
-    mass = 5.3099986439921903e10
-    mu = mass * GRAVITATIONAL_CONSTANT
-    asteroid = "Apophis"
-
-    f_pot_expansions, f_d_pot_expansion = build_potential_derivatives(
-        name_central_body=asteroid,
-        pattern="pot_*.dat",
-        n_files=700,
-        gm0=mu,
-        lambdify_backend="jax",
-        base_dir="../../Data",
-        verbose=True,
-    )
 

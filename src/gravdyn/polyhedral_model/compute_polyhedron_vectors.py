@@ -8,7 +8,6 @@
 # !===============================================================
 """
 import numpy as np
-from gravdyn.polyhedral_model.load_vertices_faces import load_vertices_faces, _load_dat
 
 
 def compute_polyhedron_vectors(vertices, faces, edges, files, verbose: bool = True):
@@ -56,12 +55,11 @@ def compute_polyhedron_vectors(vertices, faces, edges, files, verbose: bool = Tr
 
     """
 
-    # Convert 1-based indices to 0-based indices for Python array indexing
-    faces_idx = faces - 1
-    edge_v1_idx = edges[:, 0] - 1
-    edge_v2_idx = edges[:, 1] - 1
-    face1_idx = edges[:, 2] - 1
-    face2_idx = edges[:, 3] - 1
+    faces_idx = faces
+    edge_v1_idx = edges[:, 0]-1
+    edge_v2_idx = edges[:, 1]-1
+    face1_idx = edges[:, 2]-1
+    face2_idx = edges[:, 3]-1
 
     # 2. Extract coordinates for faces and edges using the indices
     r_f_1 = vertices[faces_idx[:, 0]]
@@ -107,31 +105,31 @@ def compute_polyhedron_vectors(vertices, faces, edges, files, verbose: bool = Tr
     # 6. Write all output arrays to .dat files (tab-separated values, ASCII format)
     np.savetxt(files.file_e_e, e_e, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved edge lengths to", files.file_e_e)
+        print("            Saved edge lengths to", files.file_e_e)
     np.savetxt(files.file_n_f, n_f, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved face normals to", files.file_n_f)
+        print("            Saved face normals to", files.file_n_f)
     np.savetxt(files.file_n_f_e, n_f_e, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved edge-face1 normals to", files.file_n_f_e)
+        print("            Saved edge-face1 normals to", files.file_n_f_e)
     np.savetxt(files.file_n_fp_e, n_fp_e, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved edge-face2 normals to", files.file_n_fp_e)
+        print("            Saved edge-face2 normals to", files.file_n_fp_e)
     np.savetxt(files.file_r_e_1, r_e_1, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved edge vertex 1 coordinates to", files.file_r_e_1)
+        print("            Saved edge vertex 1 coordinates to", files.file_r_e_1)
     np.savetxt(files.file_r_e_2, r_e_2, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved edge vertex 2 coordinates to", files.file_r_e_2)
+        print("            Saved edge vertex 2 coordinates to", files.file_r_e_2)
     np.savetxt(files.file_r_f_1, r_f_1, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved face vertex 1 coordinates to", files.file_r_f_1)
+        print("            Saved face vertex 1 coordinates to", files.file_r_f_1)
     np.savetxt(files.file_r_f_2, r_f_2, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved face vertex 2 coordinates to", files.file_r_f_2)
+        print("            Saved face vertex 2 coordinates to", files.file_r_f_2)
     np.savetxt(files.file_r_f_3, r_f_3, delimiter='\t', fmt='%.20e')
     if verbose:
-        print("    [✓] Saved face vertex 3 coordinates to", files.file_r_f_3)
+        print("            Saved face vertex 3 coordinates to", files.file_r_f_3)
     
     polyhedron_vectors = {
         "e_e": e_e,
@@ -146,21 +144,3 @@ def compute_polyhedron_vectors(vertices, faces, edges, files, verbose: bool = Tr
     }
     return polyhedron_vectors
 
-if __name__ == "__main__":
-
-    from src.potential.prepare_polyhedral_model import PolyFiles
-
-    base_dir: str = "Data"
-    asteroid: str = "Apophis"
-    files = PolyFiles(base_dir=base_dir, asteroid=asteroid)
-
-    vertices, faces = load_vertices_faces(files.file_vertices, files.file_faces)
-    print(f"    Loaded {vertices.shape[0]} vertices and {faces.shape[0]} faces.")
-    edges = _load_dat(files.file_edges).astype(np.int64)
-    print(f"    Loaded {edges.shape[0]} edges.")
-    c_faces = _load_dat(files.file_centroid_faces).astype(np.int64)
-    print(f"    Loaded {c_faces.shape[0]} face centroids.")
-    c_edges = _load_dat(files.file_centroid_edges).astype(np.int64)
-    print(f"    Loaded {c_edges.shape[0]} edge centroids.")
-    
-    polyhedron_vectors = compute_polyhedron_vectors(vertices, faces, edges, files)

@@ -1,10 +1,8 @@
 import numpy as np
 from collections import defaultdict
+from gravdyn.polyhedral_model.poly_files import PolyFiles
 
-from gravdyn.polyhedral_model.load_vertices_faces import load_vertices_faces
-
-
-def create_edges_from_facets(faces: list, files: classmethod, verbose: bool) -> np.ndarray:
+def create_edges_from_facets(faces: list, files: PolyFiles) -> np.ndarray:
 
     """
     Generate an `edges.dat`-style table from triangular face connectivity, recording
@@ -48,9 +46,12 @@ def create_edges_from_facets(faces: list, files: classmethod, verbose: bool) -> 
     # Step 1: Build edge -> [faces]
     for i, face in enumerate(faces):
         v1, v2, v3 = face
+        v1 += 1
+        v2 += 1
+        v3 += 1
         for a, b in [(v1, v2), (v2, v3), (v3, v1)]:
             edge = tuple(sorted((a, b)))
-            edge_to_faces[edge].append(i + 1)  # 1-based like MATLAB
+            edge_to_faces[edge].append(i+1)
 
     # Step 2: Format output
     edge_list = []
@@ -65,23 +66,8 @@ def create_edges_from_facets(faces: list, files: classmethod, verbose: bool) -> 
 
     # Step 4: Save
     np.savetxt(files.file_edges, sorted_edges, fmt="%d", delimiter="\t")
-    print(f"    [✓] Sorted edges saved to {files.file_edges}")
+    print(f"            Sorted edges saved to {files.file_edges}")
 
     return sorted_edges
 
-
-
-if __name__ == "__main__":
-    
-    from src.potential.polyhedral_model.poly_files import PolyFiles
-
-    base_dir: str = "Data"
-    asteroid: str = "Apophis"
-    files = PolyFiles(base_dir=base_dir, asteroid=asteroid)
-
-    vertices, faces = load_vertices_faces(files.file_vertices, files.file_faces)
-    print(f"    Loaded {vertices.shape[0]} vertices and {faces.shape[0]} faces.")
-
-    # Compute edges
-    edges = create_edges_from_facets(faces, files)
 

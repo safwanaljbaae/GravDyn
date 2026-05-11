@@ -5,27 +5,10 @@ import pandas as pd
 from pathlib import Path
 import jax.numpy as jax_np
 from typing import Sequence, Dict
-from dataclasses import dataclass
 
+from gravdyn.polyhedral_model.poly_files import PolyFiles
 from gravdyn.plot_tools import plot_layers_by_density, plot_layer_intersections
 from gravdyn.constants import GRAVITATIONAL_CONSTANT
-
-@dataclass
-class PolyFiles:
-    base_dir: str = "DATA"
-    asteroid: str = "BENNU"
-
-    @property
-    def root(self) -> str:
-        return os.path.join(self.base_dir, self.asteroid)
-
-    @property
-    def file_vertices(self) -> str:
-        return os.path.join(self.root, "modified_v.dat")
-
-    @property
-    def file_faces(self) -> str:
-        return os.path.join(self.root, "modified_f.dat")
 
 
 def generate_layered_mascons(
@@ -110,7 +93,6 @@ def generate_layered_mascons(
         c = vertices[k]
 
         # Layered decomposition (match Fortran EXACTLY)
-        # Fortran uses n_part that counts DOWN from nlayer to 1
         part_x = np.zeros((n_layers, 3))
         part_y = np.zeros((n_layers, 3))
         part_z = np.zeros((n_layers, 3))
@@ -199,12 +181,12 @@ def generate_layered_mascons(
     output_file = os.path.join(base_dir, asteroid, 'layered_mascons_intersections.png')
     plot_layer_intersections(df, output_file=output_file, point_size=8)
 
-    print(f"Mascon file saved to: {output_csv_full}")
-    print(f"Number of faces: {len(faces)}")
-    print(f"Number of mascon points: {len(df)}")
-    print(f"Requested total mass : {total_mass:.16e} kg")
-    print(f"Computed total mass  : {df['mass'].sum():.16e} kg")
-    print(f"Mass difference      : {df['mass'].sum() - total_mass:.16e} kg")
+    print(f"    Mascon file saved to: {output_csv_full}")
+    print(f"    Number of faces: {len(faces)}")
+    print(f"    Number of mascon points: {len(df)}")
+    print(f"    Requested total mass : {total_mass:.16e} kg")
+    print(f"    Computed total mass  : {df['mass'].sum():.16e} kg")
+    print(f"    Mass difference      : {df['mass'].sum() - total_mass:.16e} kg")
 
     return df
 

@@ -63,12 +63,12 @@ This function prepares and validates a polyhedral shape model of an irregular bo
 ### 2. Prepare polyhedral model
 
 ```python
-from gravdyn import prepare_polyhedral_model
+from gravdyn import prepare_werner_model
 
-data = prepare_polyhedral_model(
-    asteroid="Apophis",                      # Name of the asteroid → used to locate its folder
+data = prepare_werner_model(
+    asteroid="Apophis",  # Name of the asteroid → used to locate its folder
     base_dir="/caminho/completo/para/Data",  # Base directory containing shape and model files
-    verbose=True                             # If True, prints progress and file status messages
+    verbose=True  # If True, prints progress and file status messages
 )
 ```
 
@@ -153,17 +153,17 @@ p, acc = pot_point_mass(mu=1e5, stat=[1.0, 0.0, 0.0])
 #### Polyhedral model
 
 ```python
-from gravdyn import prepare_polyhedral_model, batched_polyhedral_potential
+from gravdyn import prepare_werner_model, batched_werner_potential
 
-polyhedral_data = prepare_polyhedral_model(
-    asteroid="Apophis",
-    base_dir="/caminho/completo/para/Data",
-    verbose=False,
+polyhedral_data = prepare_werner_model(
+  asteroid="Apophis",
+  base_dir="/caminho/completo/para/Data",
+  verbose=False,
 )
-p, acc = batched_polyhedral_potential(gm_body=1e5,
-                                      stat=[1.0, 0.0, 0.0],
-                                      polyhedral_data=polyhedral_data,
-                                      batch_size=2000)
+p, acc = batched_werner_potential(gm_body=1e5,
+                                  stat=[1.0, 0.0, 0.0],
+                                  polyhedral_data=polyhedral_data,
+                                  batch_size=2000)
 
 ```
 
@@ -245,6 +245,19 @@ The GUI provides three tabs:
 - **Shape Viewer** — Load and visualize asteroid mesh models in 3D
 - **Potential** — Compute gravitational fields using different models and export results
 - **Settings** — *(Coming soon)* 
+
+---
+
+## How to Cite
+
+If you use GravDyn in academic work, please cite:
+
+---
+
+## License
+
+This package is provided for academic and research use only.
+Modification and redistribution require permission from the authors.
 
 ---
 

@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: GravDyn
+message: "If you use GravDyn in academic work, please cite this package."
+type: software
+authors:
+  - family-names: Aljbaae
+    given-names: Safwan
+    email: safwan.aljbaae@gmail.com
+    affiliation: "Universidad de Atacama"
+version: 0.1.1
+date-released: 2026
+license: All rights reserved

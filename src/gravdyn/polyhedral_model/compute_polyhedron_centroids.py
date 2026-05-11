@@ -1,9 +1,7 @@
 
-import numpy as np
+from gravdyn.polyhedral_model.poly_files import PolyFiles
 
-from gravdyn.polyhedral_model.load_vertices_faces import load_vertices_faces, _load_dat
-
-def compute_polyhedron_centroids(vertices, faces, edges, files: classmethod, verbose: bool = True):
+def compute_polyhedron_centroids(vertices, faces, edges, files: PolyFiles, verbose: bool = True):
     """
     Compute and save the geometric centroids of faces and edges for a polyhedral shape model.
 
@@ -43,10 +41,9 @@ def compute_polyhedron_centroids(vertices, faces, edges, files: classmethod, ver
     """
     face_centroids = []
     for (i, j, k) in faces:
-        # Convert 1-based indices to 0-based for list access
-        x1, y1, z1 = vertices[i-1]
-        x2, y2, z2 = vertices[j-1]
-        x3, y3, z3 = vertices[k-1]
+        x1, y1, z1 = vertices[i]
+        x2, y2, z2 = vertices[j]
+        x3, y3, z3 = vertices[k]
         centroid_x = (x1 + x2 + x3) / 3.0
         centroid_y = (y1 + y2 + y3) / 3.0
         centroid_z = (z1 + z2 + z3) / 3.0
@@ -69,31 +66,12 @@ def compute_polyhedron_centroids(vertices, faces, edges, files: classmethod, ver
             cf.write(f"{cx:.20e}\t{cy:.20e}\t{cz:.20e}\n")
     
     if verbose:
-        print(f"    [✓] Sorted centroide faces saved to {files.file_centroid_faces}")
+        print(f"            Sorted centroid faces saved to {files.file_centroid_faces}")
 
     with open(files.file_centroid_edges, 'w') as ce:
         for (mx, my, mz) in edge_centroids:
             ce.write(f"{mx:.20e}\t{my:.20e}\t{mz:.20e}\n")
     if verbose:
-        print(f"    [✓] Sorted centroide edges saved to {files.file_centroid_edges}")
+        print(f"            Sorted centroid edges saved to {files.file_centroid_edges}")
     
     return face_centroids, edge_centroids
-
-if __name__ == "__main__":
-
-    from src.potential.polyhedral_model.poly_files import PolyFiles
-
-    file_vertices, file_faces, file_edges = "Data/Apophis/shape_v.dat", "Data/Apophis/shape_f.dat", "Data/Apophis/edges.dat"
-    # Example usage
-    vertices, faces = load_vertices_faces(file_vertices, file_faces)
-    print(f"    Loaded {vertices.shape[0]} vertices and {faces.shape[0]} faces.")
-    edges = _load_dat(file_edges).astype(np.int64)
-    print(f"    Loaded {edges.shape[0]} edges.")
-
-
-    base_dir: str = "Data"
-    asteroid: str = "Apophis"
-    files = PolyFiles(base_dir=base_dir, asteroid=asteroid)
-
-    # Compute edges
-    c_faces, c_edges = compute_polyhedron_centroids(vertices, faces, edges, files)

@@ -1,12 +1,10 @@
 import os
 import requests
 from pathlib import Path
-from dotenv import load_dotenv
 
 
 CONTACT = "safwan.aljbaae@gmail.com"
 
-load_dotenv()  # loads .env file automatically
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 def _get_headers():

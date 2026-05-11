@@ -5,7 +5,7 @@ from pathlib import Path
 from gravdyn import load_tetrahedron_data
 from gravdyn import prepare_werner_model
 from gravdyn import build_potential_derivatives
-from gravdyn import pot_point_mass, batched_wrener_potential, pot_expansion, batched_pot_mascon
+from gravdyn import pot_point_mass, batched_werner_potential, pot_expansion, batched_pot_mascon
 from gravdyn.plot_tools import compare_pot
 from gravdyn import generate_layered_mascons
 
@@ -128,7 +128,7 @@ def main() -> None:
         base_dir="../Data",
         verbose=False,
     )
-    p, acc = batched_wrener_potential(gm_body=mu,
+    p, acc = batched_werner_potential(gm_body=mu,
                                       stat=points,
                                       polyhedral_data=polyhedral_data,
                                       batch_size=batch_size)

@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 Plot saved to: Data/Lutetia/shape_projection.png
 3D HTML plot saved to: Data/Lutetia/shape_3d.html
+=======
+Plot saved to: ../Data/Lutetia/shape_projection.png
+3D HTML plot saved to: ../Data/Lutetia/shape_3d.html
+>>>>>>> 8242d8b (version 0.1.2)
 ==========================
 The name of the asteroid: Lutetia
 the considered mass is: 1.68e+18
@@ -46,7 +51,14 @@ Alignment error (||R - I||): 4.191e-16
 ✔ Mesh successfully aligned with principal axes.
 ===================================================
 
+<<<<<<< HEAD
 Plot saved to: Data/Lutetia/modified_shape_projection.png
 3D HTML plot saved to: Data/Lutetia/modified_shape_3d.html
 Vertices saved to: Data/Lutetia/modified_v.dat
 Faces saved to: Data/Lutetia/modified_f.dat
+=======
+Plot saved to: ../Data/Lutetia/modified_shape_projection.png
+3D HTML plot saved to: ../Data/Lutetia/modified_shape_3d.html
+Vertices saved to: ../Data/Lutetia/modified_v.dat
+Faces saved to: ../Data/Lutetia/modified_f.dat
+>>>>>>> 8242d8b (version 0.1.2)

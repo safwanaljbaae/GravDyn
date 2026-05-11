@@ -62,17 +62,17 @@ class PolyFiles:
     @property
     def file_r_e_2(self) -> str:
         return os.path.join(self.root, "r_e_2.dat")
-    
-    @property
-    def file_r_f_3(self) -> str:
-        return os.path.join(self.root, "r_f_3.dat")
-    
+
     @property
     def file_r_f_1(self) -> str:
         return os.path.join(self.root, "r_f_1.dat") 
     
     @property
     def file_r_f_2(self) -> str:
-        return os.path.join(self.root, "r_f_2.dat") 
-    
+        return os.path.join(self.root, "r_f_2.dat")
+
+    @property
+    def file_r_f_3(self) -> str:
+        return os.path.join(self.root, "r_f_3.dat")
+
     
