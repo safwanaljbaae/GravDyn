@@ -7,6 +7,6 @@ matplotlib==3.10.8
 trimesh==4.11.5
 plotly==6.6.0
 requests==2.33.1
-dotenv==0.9.9
+python-dotenv>=1.0
 scipy-stubs==1.17.1.4
 
