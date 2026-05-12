@@ -137,12 +137,16 @@ class ShapeViewerTab(ttk.Frame):
         text_scroll_frame = ttk.Frame(char_frame)
         text_scroll_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.char_text = tk.Text(text_scroll_frame, height=12, width=38, state='disabled')
+        self.char_text = tk.Text(text_scroll_frame, height=10, width=50, state='disabled', font=('Courier', 10), wrap='none')
+
+        v_scrollbar = ttk.Scrollbar(text_scroll_frame, command=self.char_text.yview)
+        h_scrollbar = ttk.Scrollbar(text_scroll_frame, orient=tk.HORIZONTAL, command=self.char_text.xview)
+
+        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
         self.char_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        scrollbar = ttk.Scrollbar(text_scroll_frame, command=self.char_text.yview)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.char_text.config(yscrollcommand=scrollbar.set)
+        self.char_text.config(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
 
     def _create_custom_verification_frame(self, parent):
         cv_frame = ttk.LabelFrame(parent, text="Custom Shape Verification", padding=10)
