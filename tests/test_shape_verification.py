@@ -1,10 +1,8 @@
 from __future__ import annotations
-
 import numpy as np
 import pytest
 import trimesh
 from pathlib import Path
-
 from gravdyn.shape_verification import shape_verification
 
 

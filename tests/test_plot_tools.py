@@ -14,6 +14,7 @@ from gravdyn.plot_tools import (
     save_mesh_3d_html,
     plot_mesh_problem_html,
     plot_layers_by_density,
+    plot_layer_intersections,
 )
 
 
@@ -187,3 +188,30 @@ class TestPlotLayersByDensity:
         plot_layers_by_density(sample_df, output_file=output)
         assert Path(output).exists()
         assert Path(output).stat().st_size > 0
+
+
+class TestPlotLayerIntersections:
+    @pytest.fixture
+    def sample_df(self):
+        return pd.DataFrame({
+            "x": [0.1, 0.2, 0.3, 0.4],
+            "y": [0.0, 0.1, 0.0, 0.1],
+            "z": [0.0, 0.0, 0.1, 0.1],
+            "layer_id": [0, 0, 1, 1],
+            "density_input": [1.5, 1.5, 2.0, 2.0],
+        })
+
+    def test_returns_none_without_output_file(self, sample_df):
+        result = plot_layer_intersections(sample_df)
+        assert result is None
+
+    def test_saves_to_file(self, sample_df, tmp_path):
+        output = str(tmp_path / "layers_intersections.png")
+        plot_layer_intersections(sample_df, output_file=output)
+        assert Path(output).exists()
+        assert Path(output).stat().st_size > 0
+
+    def test_missing_columns_raises(self):
+        df = pd.DataFrame({"x": [1.0], "y": [2.0]})
+        with pytest.raises(ValueError, match="Missing required columns"):
+            plot_layer_intersections(df)
