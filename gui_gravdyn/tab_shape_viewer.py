@@ -29,33 +29,13 @@ def _get_headers():
     return headers
 
 
-def compute_shape_characteristics(vertices, faces, asteroid_name, mass, density, base_dir):
+def load_shape_characteristics(vertices, faces, asteroid_name, mass, density, base_dir):
 
     base_path = Path(base_dir)
     asteroid_dir = base_path / asteroid_name
     asteroid_dir.mkdir(parents=True, exist_ok=True)
 
     log_file = asteroid_dir / "shape_verification.log"
-    if log_file.exists():
-        print('Shape verification log found, loading cached result...')
-        return log_file.read_text()
-
-    print('Computing shape verification...')
-
-    input_v_path = asteroid_dir / "input_v.dat"
-    input_f_path = asteroid_dir / "input_f.dat"
-
-    np.savetxt(input_v_path, vertices, fmt="%.10e")
-    np.savetxt(input_f_path, faces, fmt="%d")
-
-    gravdyn.shape_verification(
-        asteroid_name=asteroid_name,
-        mass=mass,
-        density=density,
-        base_dir=str(base_path),
-        vertices_file="input_v.dat",
-        faces_file="input_f.dat"
-    )
 
     print(log_file.read_text())
     return log_file.read_text() if log_file.exists() else "Shape verification log not found."
@@ -336,8 +316,8 @@ class ShapeViewerTab(ttk.Frame):
             faces_path = asteroid_dir / "input_f.dat"
 
             if not vertices_path.exists() or not faces_path.exists():
-                vertices_path = asteroid_dir / "shape_v.dat"
-                faces_path = asteroid_dir / "shape_f.dat"
+                vertices_path = asteroid_dir / "modified_v.dat"
+                faces_path = asteroid_dir / "modified_f.dat"
 
             vertices = load_vertices(str(vertices_path))
             faces = load_faces(str(faces_path))
@@ -374,7 +354,7 @@ class ShapeViewerTab(ttk.Frame):
         self.char_text.config(state='normal')
         self.char_text.delete('1.0', tk.END)
 
-        info = compute_shape_characteristics(vertices, faces, asteroid_name, mass, density, base_dir)
+        info = load_shape_characteristics(vertices, faces, asteroid_name, mass, density, base_dir)
         self.char_text.insert('1.0', info)
 
         self.char_text.config(state='disabled')

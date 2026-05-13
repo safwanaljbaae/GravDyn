@@ -272,12 +272,33 @@ def main() -> None:
     asteroid = "Apophis"
     mass = 5.31e10
     density = 1.75e0
-    densities = [1.75e0 for _ in range(20)]
 
-    asteroid = "1998_QE2"
-    mass = 1.12e13
-    density = 0.7e0
-    densities = [0.7e0 for _ in range(20)]
+    asteroid="Bennu"
+    mass=7.793e10
+    density=1.25e0
+
+    asteroid="Sylvia"
+    mass=1.4692e19
+    density=1.373e0
+
+    asteroid="Lutetia"
+    mass=1.68e18
+    density=3.4e0
+
+    asteroid="1996_HW1"
+    mass=2.27e13
+    density=1.727e0
+
+    asteroid="1998_QE2"
+    mass=1.12e13
+    density=0.7e0
+
+    # asteroid="Arrokoth"
+    # mass=1.0e8
+    # density=0.50
+
+
+    densities = [density for _ in range(20)]
 
 
     base_dir = 'Data/'
@@ -286,6 +307,8 @@ def main() -> None:
 
     gravdyn.shape_verification(asteroid, mass, density, base_dir,
                        vertices_file, faces_file)
+
+    exit()
 
     file_path = Path(base_dir) / asteroid / "modified_v.dat"
     vertices = np.loadtxt(file_path)

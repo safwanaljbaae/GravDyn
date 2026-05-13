@@ -1,0 +1,53 @@
+Plot saved to: Data/1996_HW1/shape_projection.png
+3D HTML plot saved to: Data/1996_HW1/shape_3d.html
+==========================
+The name of the asteroid: 1996_HW1
+the considered mass is: 22700000000000.0
+the considered density is: 1.727
+
+Vertices: 1392
+Faces: 2780
+
+===== Centering Mesh =====
+Original center of mass: [1.80191968e-16 2.36501958e-16 1.12619980e-17]
+New center of mass: [1.80191968e-16 2.36501958e-16 1.12619980e-17]
+Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 1.314418e+01
+Reference volume (M/rho)    : 1.314418e+01
+Scaling factor applied      : 1.000000e+00
+Rescaled mesh volume        : 1.314418e+01
+volume_equivalent_diameter  : 1.464024e+00
+Relative error              : 2.838e-15
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 1.00000000e+00 -8.98213000e-17  4.85974144e-18]
+ [ 8.98213000e-17  1.00000000e+00 -4.30211422e-16]
+ [-4.85974144e-18  4.37150316e-16  1.00000000e+00]]
+
+Rotation angles applied (deg):
+[np.float64(0.0), np.float64(0.0), np.float64(0.0)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00 -8.98213000e-17  4.85974144e-18]
+ [ 8.98213000e-17  1.00000000e+00 -4.30211422e-16]
+ [-4.85974144e-18  4.37150316e-16  1.00000000e+00]]
+
+Alignment error (||R - I||): 7.007e-16
+Mesh successfully aligned with principal axes.
+===================================================
+
+Plot saved to: Data/1996_HW1/modified_shape_projection.png
+3D HTML plot saved to: Data/1996_HW1/modified_shape_3d.html
+Vertices saved to: Data/1996_HW1/modified_v.dat
+Faces saved to: Data/1996_HW1/modified_f.dat

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import re
 import requests
 import numpy as np
@@ -24,6 +25,19 @@ from gravdyn.constants import GRAVITATIONAL_CONSTANT
 
 
 G = GRAVITATIONAL_CONSTANT
+
+OWNER = "safwanaljbaae"
+REPO = "GravDyn"
+BRANCH = "main"
+
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+
+
+def _get_headers():
+    headers = {}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+    return headers
 
 
 class PotentialTab(ttk.Frame):
@@ -182,110 +196,34 @@ class PotentialTab(ttk.Frame):
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
     def _load_asteroid_list(self):
-        self._asteroid_list = getattr(self, '_asteroid_list', [])
         try:
-            url = "https://api.github.com/repos/safwanaljbaae/GravDyn/contents/Data?ref=main"
-            response = requests.get(url, timeout=20)
+            url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/Data"
+            response = requests.get(url, params={"ref": BRANCH}, headers=_get_headers(), timeout=20)
             if response.status_code == 200:
-                contents = response.json()
-                self._asteroid_list = [
-                    item['name'] for item in contents
-                    if item['type'] == 'dir' and not item['name'].startswith('.')
-                ]
+                data = response.json()
+                self._asteroid_list = sorted(item["name"] for item in data if item["type"] == "dir")
                 self.asteroid_combo['values'] = self._asteroid_list
             else:
-                self._load_local_asteroids()
-        except Exception:
-            self._load_local_asteroids()
-
-    def _load_local_asteroids(self):
-        local_data_dir = Path("Data")
-        if local_data_dir.exists():
-            self._asteroid_list = [
-                d.name for d in local_data_dir.iterdir()
-                if d.is_dir() and not d.name.startswith('.')
-            ]
-            self.asteroid_combo['values'] = self._asteroid_list
+                self._asteroid_combo['values'] = []
+        except Exception as e:
+            self._log(f"Error loading asteroid list from GitHub: {e}")
+            self.asteroid_combo['values'] = []
 
     def _log(self, message):
         if hasattr(self.main_app, '_log'):
             self.main_app._log(message)
 
     def _on_asteroid_selected(self, event=None):
-        asteroid_name = self.asteroid_var.get()
-        if asteroid_name:
-            self._log(f"Selected: {asteroid_name}")
-            self._load_from_github(asteroid_name)
+        name = self.asteroid_var.get()
+        if name:
+            self._log(f"Selected: {name}")
+            self._load_asteroid(name)
 
     def _toggle_layers_entry(self):
         state = 'normal' if self.model_type.get() == "mascon" else 'disabled'
         self.layers_entry.config(state=state)
 
-    def _download_folder_recursive(self, api_url, local_dir):
-        contents = requests.get(api_url, timeout=30).json()
-        for item in contents:
-            if item['type'] == 'file':
-                file_response = requests.get(item['download_url'], timeout=30)
-                if file_response.status_code == 200:
-                    file_path = local_dir / item['name']
-                    with open(file_path, 'wb') as f:
-                        f.write(file_response.content)
-                    self._log(f"Downloaded: {item['path']}")
-            elif item['type'] == 'dir':
-                sub_dir = local_dir / item['name']
-                sub_dir.mkdir(parents=True, exist_ok=True)
-                self._download_folder_recursive(item['url'], sub_dir)
-
-    def _load_from_github(self, asteroid_name):
-        self._log(f"Loading {asteroid_name} folder from GitHub...")
-
-        gui_dir = Path(__file__).parent
-        data_dir = gui_dir / "Data"
-        asteroid_dir = data_dir / asteroid_name
-        asteroid_dir.mkdir(parents=True, exist_ok=True)
-
-        api_url = f"https://api.github.com/repos/safwanaljbaae/GravDyn/contents/Data/{asteroid_name}"
-
-        try:
-            response = requests.get(api_url, timeout=30)
-
-            if response.status_code == 200:
-                self._download_folder_recursive(api_url, asteroid_dir)
-
-                vertices_path = asteroid_dir / "modified_v.dat"
-                faces_path = asteroid_dir / "modified_f.dat"
-
-                if vertices_path.exists() and faces_path.exists():
-                    vertices = np.loadtxt(vertices_path)
-                    faces = np.loadtxt(faces_path, dtype=int)
-
-                    self.asteroid_dir = asteroid_dir
-                    self._current_vertices = vertices
-                    self._current_faces = faces
-                    self._asteroid_name = asteroid_name
-                    self._shape_source = 'asteroid'
-
-                    self.status_label.config(text=f"Loaded: {asteroid_name}")
-                    self._log(f"Loaded shape for {asteroid_name}")
-                else:
-                    self._log(f"Modified shape files not found in {asteroid_name}")
-                    self.status_label.config(text="Shape files not found")
-            else:
-                self._log(f"Failed to fetch folder contents: {response.status_code}")
-                self.status_label.config(text="Folder not found on GitHub")
-
-        except Exception as e:
-            self.status_label.config(text=f"Error: {str(e)}")
-            self._log(f"Error: {str(e)}")
-
-    def _check_custom_name(self):
-        name = self.custom_name_var.get().strip()
-        if not name:
-            messagebox.showwarning("Warning", "Please enter an asteroid name")
-            return
-        self._load_asteroid_by_name(name)
-
-    def _load_asteroid_by_name(self, name):
+    def _load_asteroid(self, name):
         self.status_label.config(text=f"Loading {name} from GitHub...", foreground="blue")
 
         gui_dir = Path(__file__).parent
@@ -295,8 +233,8 @@ class PotentialTab(ttk.Frame):
         if not asteroid_dir.exists():
             self._log("Downloading asteroid data from GitHub...")
             try:
-                url = f"https://api.github.com/repos/safwanaljbaae/GravDyn/contents/Data/{name}"
-                response = requests.get(url, params={"ref": "main"}, timeout=20)
+                url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/Data/{name}"
+                response = requests.get(url, params={"ref": BRANCH}, headers=_get_headers(), timeout=20)
                 if response.status_code != 200:
                     raise FileNotFoundError(f"Asteroid '{name}' not found on GitHub")
 
@@ -310,7 +248,7 @@ class PotentialTab(ttk.Frame):
                         file_name = item["name"]
                         file_path = asteroid_dir / file_name
 
-                        file_response = requests.get(download_url, timeout=30)
+                        file_response = requests.get(download_url, headers=_get_headers(), timeout=30)
                         if file_response.status_code == 200:
                             with open(file_path, 'wb') as f:
                                 f.write(file_response.content)
@@ -319,20 +257,27 @@ class PotentialTab(ttk.Frame):
                 self._log(f"Downloaded files for {name}")
 
             except Exception as e:
-                self.status_label.config(text=f"Error: {str(e)}")
-                self._log(f"Error: {str(e)}")
+                self.status_label.config(text=f"Error downloading: {str(e)}", foreground="red")
+                self._log(f"Download error: {e}")
                 return
+        else:
+            self._log(f"Using cached data for {name}")
 
-        v_path = asteroid_dir / "modified_v.dat"
-        f_path = asteroid_dir / "modified_f.dat"
+        vertices_path = asteroid_dir / "input_v.dat"
+        faces_path = asteroid_dir / "input_f.dat"
 
-        if not v_path.exists():
-            self.status_label.config(text="Shape files not found")
+        if not vertices_path.exists() or not faces_path.exists():
+            vertices_path = asteroid_dir / "shape_v.dat"
+            faces_path = asteroid_dir / "shape_f.dat"
+
+        if not vertices_path.exists() or not faces_path.exists():
+            self.status_label.config(text="Shape files not found", foreground="red")
+            self._log("Shape files not found")
             return
 
         try:
-            vertices = np.loadtxt(v_path)
-            faces = np.loadtxt(f_path, dtype=int)
+            vertices = np.loadtxt(vertices_path)
+            faces = np.loadtxt(faces_path, dtype=int)
 
             self.asteroid_dir = asteroid_dir
             self._current_vertices = vertices
@@ -340,12 +285,19 @@ class PotentialTab(ttk.Frame):
             self._asteroid_name = name
             self._shape_source = 'asteroid'
 
-            self.status_label.config(text=f"Loaded: {name}")
+            self.status_label.config(text=f"Loaded: {name}", foreground="green")
             self._log(f"Loaded shape for {name}")
 
         except Exception as e:
-            self.status_label.config(text=f"Error: {str(e)}")
-            self._log(f"Error: {str(e)}")
+            self.status_label.config(text=f"Error: {str(e)}", foreground="red")
+            self._log(f"Error loading asteroid: {e}")
+
+    def _check_custom_name(self):
+        name = self.custom_name_var.get().strip()
+        if not name:
+            messagebox.showwarning("Warning", "Please enter an asteroid name")
+            return
+        self._load_asteroid(name)
 
     def _load_from_main_app(self):
         if self._asteroid_name is not None or self._current_vertices is not None:
@@ -369,7 +321,7 @@ class PotentialTab(ttk.Frame):
 
         custom_name = self.custom_name_var.get().strip()
         if custom_name:
-            self._load_asteroid_by_name(custom_name)
+            self._load_asteroid(custom_name)
 
     def _compute_potential(self):
         self._load_from_main_app()
@@ -495,6 +447,8 @@ class PotentialTab(ttk.Frame):
 
         file_path = f"Data/{asteroid_name}/shape_verification.log"
         mass = self._extract_mass(file_path)
+        print(mass)
+        exit()
 
         if mass is None:
             raise ValueError(f"Could not extract mass from {file_path}")

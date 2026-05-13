@@ -1,0 +1,53 @@
+Plot saved to: Data/1998_QE2/shape_projection.png
+3D HTML plot saved to: Data/1998_QE2/shape_3d.html
+==========================
+The name of the asteroid: 1998_QE2
+the considered mass is: 11200000000000.0
+the considered density is: 0.7
+
+Vertices: 1148
+Faces: 2292
+
+===== Centering Mesh =====
+Original center of mass: [-2.08176960e-17  3.81657761e-17  1.15653867e-16]
+New center of mass: [-2.08176960e-17  3.81657761e-17  1.15653867e-16]
+Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 1.599922e+01
+Reference volume (M/rho)    : 1.600000e+01
+Scaling factor applied      : 1.000016e+00
+Rescaled mesh volume        : 1.600000e+01
+volume_equivalent_diameter  : 1.563185e+00
+Relative error              : 2.220e-16
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 1.00000000e+00 -2.65282197e-08 -1.09002937e-11]
+ [ 2.65282197e-08  1.00000000e+00  2.39344677e-12]
+ [ 1.09002937e-11 -2.39344699e-12  1.00000000e+00]]
+
+Rotation angles applied (deg):
+[np.float64(1.4787793334710982e-06), np.float64(1.4787793334710982e-06), np.float64(0.0)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00  0.00000000e+00  0.00000000e+00]
+ [ 0.00000000e+00 -1.00000000e+00  1.30104261e-15]
+ [ 0.00000000e+00  1.30104261e-15  1.00000000e+00]]
+
+Alignment error (||R - I||): 2.000e+00
+Warning: alignment may be inaccurate.
+===================================================
+
+Plot saved to: Data/1998_QE2/modified_shape_projection.png
+3D HTML plot saved to: Data/1998_QE2/modified_shape_3d.html
+Vertices saved to: Data/1998_QE2/modified_v.dat
+Faces saved to: Data/1998_QE2/modified_f.dat
