@@ -127,6 +127,7 @@ def pot_expansion(stat, f_pot_expansion, f_d_pot_expansion):
 
 
 @jax.jit
+@jax.jit
 def pot_mascon_jax(
         stat: ArrayLike,
         data_shape: Mapping[str, Any],

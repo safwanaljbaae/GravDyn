@@ -12,6 +12,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import ttk, messagebox
 
+from gravdyn.shape_tools import load_vertices, load_faces
 from gravdyn.prepare_polyhedral_model import prepare_werner_model
 from gravdyn.build_potential_derivatives import build_potential_derivatives
 from gravdyn.generate_layered_mascons import generate_layered_mascons, load_tetrahedron_data
@@ -276,12 +277,10 @@ class PotentialTab(ttk.Frame):
             return
 
         try:
-            vertices = np.loadtxt(vertices_path)
-            faces = np.loadtxt(faces_path, dtype=int)
+            self._current_vertices = load_vertices(str(vertices_path))
+            self._current_faces = load_faces(str(faces_path))
 
             self.asteroid_dir = asteroid_dir
-            self._current_vertices = vertices
-            self._current_faces = faces
             self._asteroid_name = name
             self._shape_source = 'asteroid'
 
@@ -447,8 +446,6 @@ class PotentialTab(ttk.Frame):
 
         file_path = f"Data/{asteroid_name}/shape_verification.log"
         mass = self._extract_mass(file_path)
-        print(mass)
-        exit()
 
         if mass is None:
             raise ValueError(f"Could not extract mass from {file_path}")
@@ -482,7 +479,7 @@ class PotentialTab(ttk.Frame):
             tetrahedron_data_file="layered_mascons.csv",
         )
 
-        p, acc = batched_pot_mascon(points, data_shape, batch_size=20000)
+        p, acc = batched_pot_mascon(points, data_shape, batch_size=2000)
         return p, acc
 
     def _compute_expansion(self, asteroid_name, points):
