@@ -293,10 +293,21 @@ def main() -> None:
     mass=1.12e13
     density=0.7e0
 
-    # asteroid="Arrokoth"
-    # mass=1.0e8
-    # density=0.50
+    asteroid="Arrokoth"
+    mass=1.0e8
+    density=0.50
 
+    asteroid="Eros"
+    mass=6.689e15
+    density=2.675e0
+
+    # asteroid="Itokawa"
+    # mass=3.524e10
+    # density=1.98e0
+
+    # asteroid="Phaeyhon"
+    # mass=2.27e13
+    # density=1.727e0
 
     densities = [density for _ in range(20)]
 
@@ -305,10 +316,9 @@ def main() -> None:
     vertices_file = "shape_v.dat"
     faces_file = "shape_f.dat"
 
-    gravdyn.shape_verification(asteroid, mass, density, base_dir,
-                       vertices_file, faces_file)
+    # gravdyn.shape_verification(asteroid, mass, density, base_dir,
+    #                    vertices_file, faces_file)
 
-    exit()
 
     file_path = Path(base_dir) / asteroid / "modified_v.dat"
     vertices = np.loadtxt(file_path)
@@ -344,52 +354,52 @@ def main() -> None:
     #     output_csv=f"{base_dir}/{asteroid}/pot_point_mass.csv",
     # )
 
-    print('Werner')
-    batch_size = 2000
-    polyhedral_data = gravdyn.prepare_werner_model(
-        asteroid=asteroid,
-        base_dir=base_dir,
-        verbose=True,
-    )
+    # print('Werner')
+    # batch_size = 2000
+    # polyhedral_data = gravdyn.prepare_werner_model(
+    #     asteroid=asteroid,
+    #     base_dir=base_dir,
+    #     verbose=True,
+    # )
     start = time.perf_counter()
-    p, acc = gravdyn.batched_werner_potential(gm_body=mass*gravitation,
-                                      stat=points,
-                                      polyhedral_data=polyhedral_data,
-                                      batch_size=batch_size)
-    end = time.perf_counter()
-    elapsed = end - start
-    print("    Execution time:", format_time(elapsed))
-    save_potential_acceleration_csv(
-        points=points,
-        potential=p,
-        acceleration=acc,
-        output_csv=f"{base_dir}/{asteroid}/pot_Werner.csv",
-    )
+    # p, acc = gravdyn.batched_werner_potential(gm_body=mass*gravitation,
+    #                                   stat=points,
+    #                                   polyhedral_data=polyhedral_data,
+    #                                   batch_size=batch_size)
+    # end = time.perf_counter()
+    # elapsed = end - start
+    # print("    Execution time:", format_time(elapsed))
+    # save_potential_acceleration_csv(
+    #     points=points,
+    #     potential=p,
+    #     acceleration=acc,
+    #     output_csv=f"{base_dir}/{asteroid}/pot_Werner.csv",
+    # )
 
-    print('Mascon')
-    df_mascons = gravdyn.generate_layered_mascons(
-        base_dir=base_dir,
-        asteroid=asteroid,
-        total_mass=mass,
-        densities=densities,
-        output_csv="layered_mascons.csv",
-    )
-    data_shape = gravdyn.load_tetrahedron_data(
-        asteroid=asteroid,
-        base_dir=base_dir,
-        tetrahedron_data_file="layered_mascons.csv",
-    )
-    start = time.perf_counter()
-    p, acc = gravdyn.batched_pot_mascon(points, data_shape, batch_size=batch_size)
-    save_potential_acceleration_csv(
-        points=points,
-        potential=p,
-        acceleration=acc,
-        output_csv=f"{base_dir}/{asteroid}/pot_Mascon.csv",
-    )
-    end = time.perf_counter()
-    elapsed = end - start
-    print("    Execution time:", format_time(elapsed))
+    # print('Mascon')
+    # df_mascons = gravdyn.generate_layered_mascons(
+    #     base_dir=base_dir,
+    #     asteroid=asteroid,
+    #     total_mass=mass,
+    #     densities=densities,
+    #     output_csv="layered_mascons.csv",
+    # )
+    # data_shape = gravdyn.load_tetrahedron_data(
+    #     asteroid=asteroid,
+    #     base_dir=base_dir,
+    #     tetrahedron_data_file="layered_mascons.csv",
+    # )
+    # start = time.perf_counter()
+    # p, acc = gravdyn.batched_pot_mascon(points, data_shape, batch_size=batch_size)
+    # save_potential_acceleration_csv(
+    #     points=points,
+    #     potential=p,
+    #     acceleration=acc,
+    #     output_csv=f"{base_dir}/{asteroid}/pot_Mascon.csv",
+    # )
+    # end = time.perf_counter()
+    # elapsed = end - start
+    # print("    Execution time:", format_time(elapsed))
 
 
     print('Expansion')

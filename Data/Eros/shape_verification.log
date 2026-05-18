@@ -1,0 +1,53 @@
+Plot saved to: Data/Eros/shape_projection.png
+3D HTML plot saved to: Data/Eros/shape_3d.html
+==========================
+The name of the asteroid: Eros
+the considered mass is: 6689000000000000.0
+the considered density is: 2.675
+
+Vertices: 3897
+Faces: 7790
+
+===== Centering Mesh =====
+Original center of mass: [ 9.60144254e-16 -4.12561984e-16 -5.76086553e-15]
+New center of mass: [ 9.60144254e-16 -4.12561984e-16 -5.76086553e-15]
+Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 2.525995e+03
+Reference volume (M/rho)    : 2.500561e+03
+Scaling factor applied      : 9.966324e-01
+Rescaled mesh volume        : 2.500561e+03
+volume_equivalent_diameter  : 8.420081e+00
+Relative error              : 1.819e-16
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 1.00000000e+00  3.35527754e-17  5.58499923e-17]
+ [-3.35527754e-17  1.00000000e+00 -3.66373598e-15]
+ [-5.58499923e-17  3.88578059e-15  1.00000000e+00]]
+
+Rotation angles applied (deg):
+[np.float64(0.0), np.float64(0.0), np.float64(0.0)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00  3.35527754e-17  5.58499923e-17]
+ [-3.35527754e-17  1.00000000e+00 -3.66373598e-15]
+ [-5.58499923e-17  3.88578059e-15  1.00000000e+00]]
+
+Alignment error (||R - I||): 5.346e-15
+Mesh successfully aligned with principal axes.
+===================================================
+
+Plot saved to: Data/Eros/modified_shape_projection.png
+3D HTML plot saved to: Data/Eros/modified_shape_3d.html
+Vertices saved to: Data/Eros/modified_v.dat
+Faces saved to: Data/Eros/modified_f.dat
