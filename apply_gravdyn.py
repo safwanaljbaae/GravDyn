@@ -293,13 +293,13 @@ def main() -> None:
     mass=1.12e13
     density=0.7e0
 
-    asteroid="Arrokoth"
-    mass=1.0e8
-    density=0.50
+    # asteroid="Arrokoth"
+    # mass=1.0e8
+    # density=0.50
 
-    asteroid="Eros"
-    mass=6.689e15
-    density=2.675e0
+    # asteroid="Eros"
+    # mass=6.689e15
+    # density=2.675e0
 
     # asteroid="Itokawa"
     # mass=3.524e10

@@ -184,14 +184,12 @@ def build_potential_derivatives(
         list_files = list_github_folder_files(
             owner="safwanaljbaae",
             repo="GravDyn",
-            path=f"Data/{name_central_body}/Pot_Expansion",
-            branch="feature-test"
+            path=f"Data/{name_central_body}/Pot_Expansion"
         )
         files = download_github_folder(
             owner="safwanaljbaae",
             repo="GravDyn",
             path=f"Data/{name_central_body}/Pot_Expansion",
-            branch="feature-test",
             output_dir=f'{base_dir}/{name_central_body}/Pot_Expansion'
         )
 

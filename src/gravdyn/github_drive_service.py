@@ -33,7 +33,6 @@ def list_github_folder_files(owner, repo, path, branch="main"):
             f"Network error while accessing GitHub: {e}\n{contact_msg}"
         ) from e
 
-    print(response.status_code)
     if response.status_code == 404:
         raise FileNotFoundError(
             f"Folder not found in GitHub repo '{owner}/{repo}'\n"
