@@ -29,13 +29,61 @@ pip install gravdyn
 or (development mode):
 
 ```bash
-git clone https://github.com/your-repo/gravdyn.git
+git clone https://github.com/safwanaljbaae/gravdyn.git
 cd gravdyn
 pip install -e .
 ```
 
 ---
 
+## Getting Started
+
+### Install dependencies
+
+From the repository root, install the package and its dependencies:
+
+```bash
+pip install -e .
+```
+
+### Sample data
+
+The `Data/` directory contains shape models for some asteroids (e.g. `Apophis/`, `Bennu/`, `Psyche/`). Each asteroid folder contains:
+
+| File | Description |
+|------|-------------|
+| `shape_v.dat` | Vertex coordinates (N × 3) |
+| `shape_f.dat` | Triangular face indices (M × 3) |
+| `Pot_Expansion/` | Pre-computed expansion potential files (`pot_*.dat`) |
+
+### Run the full pipeline
+
+The script `apply_gravdyn.py` at the repository root runs the complete workflow (shape verification → point-mass → Werner polyhedral → mascon → expansion → comparison plot) for a user-selected asteroid.
+
+1. Open `apply_gravdyn.py` and set the target asteroid, mass, and density (see the commented examples for options, or add a new one).
+2. Run from the repository root:
+
+```bash
+python apply_gravdyn.py
+```
+
+Outputs are saved as CSV files (`pot_Werner.csv`, `pot_Mascon.csv`, etc.) and a comparison plot (`d_pot.png`) inside `Data/<asteroid>/`.
+
+### Run individual steps
+
+Example scripts are also available in `examples/`:
+
+```bash
+python examples/basic_usage_shape_verification.py
+python examples/basic_usage_prepare_polyhedral_model.py --asteroid Apophis
+python examples/basic_usage_prepare_expansion_model.py --asteroid Apophis
+python examples/basic_usage_generate_layered_mascons.py
+python examples/basic_usage_potential_model.py
+```
+
+All examples expect to be run from the `examples/` directory and use `../Data/` as the data path.
+
+---
 
 ## Workflow Overview
 
@@ -260,7 +308,17 @@ This package is provided for academic and research use only.
 Modification and redistribution require permission from the authors.
 
 ---
+## Support and contact
 
+Questions, bug reports, and feature requests should be submitted through the GitHub Issues page of this repository.
+
+For scientific questions, collaborations, or requests related to new PSEM models, please contact:
+
+Safwan Aljbaae  
+Universidad de Atacama, Instituto de Astronomía y Ciencias Planetarias  
+Email: safwan.aljbaae@gmail.com
+
+---
 ## Author
 
 Safwan Aljbaae  

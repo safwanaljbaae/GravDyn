@@ -1,0 +1,53 @@
+Plot saved to: Data/Phaeyhon/shape_projection.png
+3D HTML plot saved to: Data/Phaeyhon/shape_3d.html
+==========================
+The name of the asteroid: Phaeyhon
+the considered mass is: 22700000000000.0
+the considered density is: 1.727
+
+Vertices: 1000
+Faces: 1996
+
+===== Centering Mesh =====
+Original center of mass: [-4.09205111e-16 -1.02301278e-16 -7.50209370e-16]
+New center of mass: [-4.09205111e-16 -1.02301278e-16 -7.50209370e-16]
+Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 6.945590e+01
+Reference volume (M/rho)    : 1.314418e+01
+Scaling factor applied      : 5.741272e-01
+Rescaled mesh volume        : 1.314418e+01
+volume_equivalent_diameter  : 1.464024e+00
+Relative error              : 4.054e-16
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 1.00000000e+00 -7.52554433e-15  1.45838928e-15]
+ [ 7.52554433e-15  1.00000000e+00 -3.88578059e-15]
+ [-1.45838928e-15  3.88578059e-15  1.00000000e+00]]
+
+Rotation angles applied (deg):
+[np.float64(0.0), np.float64(0.0), np.float64(0.0)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00 -7.52554433e-15  1.45838928e-15]
+ [ 7.52554433e-15  1.00000000e+00 -3.88578059e-15]
+ [-1.45838928e-15  3.88578059e-15  1.00000000e+00]]
+
+Alignment error (||R - I||): 1.215e-14
+Mesh successfully aligned with principal axes.
+===================================================
+
+Plot saved to: Data/Phaeyhon/modified_shape_projection.png
+3D HTML plot saved to: Data/Phaeyhon/modified_shape_3d.html
+Vertices saved to: Data/Phaeyhon/modified_v.dat
+Faces saved to: Data/Phaeyhon/modified_f.dat

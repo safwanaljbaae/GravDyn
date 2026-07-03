@@ -1,0 +1,53 @@
+Plot saved to: Data/Psyche/shape_projection.png
+3D HTML plot saved to: Data/Psyche/shape_3d.html
+==========================
+The name of the asteroid: Psyche
+the considered mass is: 2.293e+19
+the considered density is: 3.794
+
+Vertices: 1148
+Faces: 2292
+
+===== Centering Mesh =====
+Original center of mass: [-0.06814861 -0.13468631  0.07942896]
+New center of mass: [-5.82648379e-15  3.32211795e-15  0.00000000e+00]
+Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 6.074034e+06
+Reference volume (M/rho)    : 6.043753e+06
+Scaling factor applied      : 9.983355e-01
+Rescaled mesh volume        : 6.043753e+06
+volume_equivalent_diameter  : 1.129985e+02
+Relative error              : 3.082e-16
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 0.99895992  0.04393616  0.01219374]
+ [-0.04387354  0.99902273 -0.00535657]
+ [-0.01241717  0.00481602  0.99991131]]
+
+Rotation angles applied (deg):
+[np.float64(2.613413462342267), np.float64(2.5332598216520155), np.float64(0.7631113932183644)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00 -0.00000000e+00  0.00000000e+00]
+ [ 0.00000000e+00  1.00000000e+00  8.88178420e-16]
+ [ 0.00000000e+00 -7.77156117e-16  1.00000000e+00]]
+
+Alignment error (||R - I||): 1.261e-15
+Mesh successfully aligned with principal axes.
+===================================================
+
+Plot saved to: Data/Psyche/modified_shape_projection.png
+3D HTML plot saved to: Data/Psyche/modified_shape_3d.html
+Vertices saved to: Data/Psyche/modified_v.dat
+Faces saved to: Data/Psyche/modified_f.dat

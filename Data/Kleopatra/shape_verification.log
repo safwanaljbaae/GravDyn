@@ -1,0 +1,53 @@
+Plot saved to: Data/Kleopatra/shape_projection.png
+3D HTML plot saved to: Data/Kleopatra/shape_3d.html
+==========================
+The name of the asteroid: Kleopatra
+the considered mass is: 4.64e+18
+the considered density is: 4.9
+
+Vertices: 1148
+Faces: 2292
+
+===== Centering Mesh =====
+Original center of mass: [1.90145026e-14 5.94203206e-15 2.66366954e-15]
+New center of mass: [1.90145026e-14 5.94203206e-15 2.66366954e-15]
+Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 9.469388e+05
+Reference volume (M/rho)    : 9.469388e+05
+Scaling factor applied      : 1.000000e+00
+Rescaled mesh volume        : 9.469388e+05
+volume_equivalent_diameter  : 6.091783e+01
+Relative error              : 1.719e-09
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 1.00000000e+00  6.38721889e-17  4.81928558e-17]
+ [-6.38721889e-17  1.00000000e+00  8.88178420e-16]
+ [-4.81928558e-17 -9.99200722e-16  1.00000000e+00]]
+
+Rotation angles applied (deg):
+[np.float64(0.0), np.float64(0.0), np.float64(0.0)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00  6.38721889e-17  4.81928558e-17]
+ [-6.38721889e-17  1.00000000e+00  8.88178420e-16]
+ [-4.81928558e-17 -9.99200722e-16  1.00000000e+00]]
+
+Alignment error (||R - I||): 1.387e-15
+Mesh successfully aligned with principal axes.
+===================================================
+
+Plot saved to: Data/Kleopatra/modified_shape_projection.png
+3D HTML plot saved to: Data/Kleopatra/modified_shape_3d.html
+Vertices saved to: Data/Kleopatra/modified_v.dat
+Faces saved to: Data/Kleopatra/modified_f.dat

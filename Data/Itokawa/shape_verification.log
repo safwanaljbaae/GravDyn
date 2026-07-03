@@ -1,0 +1,53 @@
+Plot saved to: Data/Itokawa/shape_projection.png
+3D HTML plot saved to: Data/Itokawa/shape_3d.html
+==========================
+The name of the asteroid: Itokawa
+the considered mass is: 352400000.0
+the considered density is: 1.98
+
+Vertices: 1846
+Faces: 3688
+
+===== Centering Mesh =====
+Original center of mass: [ 3.95018213e-04  3.06831932e-05 -5.12370931e-04]
+New center of mass: [-1.09889290e-17  1.32625006e-18  3.03142870e-18]
+Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 2.384359e-02
+Reference volume (M/rho)    : 1.779798e-04
+Scaling factor applied      : 1.954338e-01
+Rescaled mesh volume        : 1.779798e-04
+volume_equivalent_diameter  : 3.489480e-02
+Relative error              : 3.046e-16
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 9.99999960e-01  2.64724373e-04 -9.58831374e-05]
+ [-2.65241245e-04  9.99985215e-01 -5.43135926e-03]
+ [ 9.44439066e-05  5.43138448e-03  9.99985245e-01]]
+
+Rotation angles applied (deg):
+[np.float64(0.016131847437629476), np.float64(0.31156635603533855), np.float64(0.3112439814405591)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00 -0.00000000e+00  0.00000000e+00]
+ [ 0.00000000e+00  1.00000000e+00 -7.21644966e-16]
+ [ 0.00000000e+00  7.77156117e-16  1.00000000e+00]]
+
+Alignment error (||R - I||): 1.061e-15
+Mesh successfully aligned with principal axes.
+===================================================
+
+Plot saved to: Data/Itokawa/modified_shape_projection.png
+3D HTML plot saved to: Data/Itokawa/modified_shape_3d.html
+Vertices saved to: Data/Itokawa/modified_v.dat
+Faces saved to: Data/Itokawa/modified_f.dat

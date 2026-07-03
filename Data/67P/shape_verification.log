@@ -1,0 +1,52 @@
+Plot saved to: Data/67P/shape_projection.png
+3D HTML plot saved to: Data/67P/shape_3d.html
+==========================
+The name of the asteroid: 67P
+the considered mass is: 9982000000000.0
+the considered density is: 0.5378
+
+Vertices: 24990
+Faces: 49976
+
+===== Centering Mesh =====
+Original center of mass: [ 0.01645218 -0.0274638   0.02225632]
+New center of mass: [ 6.38104377e-17  3.19052189e-17 -7.97630471e-18]
+✔ Mesh successfully recentered: center of mass is now at the origin (0, 0, 0).
+=================================
+
+
+===== Mesh Rescaling Report =====
+Original mesh volume        : 1.855869e+01
+Reference volume (M/rho)    : 1.856080e+01
+Scaling factor applied      : 1.000038e+00
+Rescaled mesh volume        : 1.856080e+01
+Relative error              : 0.000e+00
+=================================
+
+
+===================================================
+ Principal Axes Transformation Report
+===================================================
+
+Original principal axes (columns = eigenvectors):
+[[ 0.99972687  0.00308242  0.02316639]
+ [-0.00180547  0.99848798 -0.05494085]
+ [-0.02330072  0.05488402  0.99822083]]
+
+Rotation angles applied (deg):
+[np.float64(1.339156468921428), np.float64(3.1511663422759097), np.float64(3.4183065969265694)]
+
+After transformation:
+New principal axes (should be ~identity):
+[[ 1.00000000e+00  0.00000000e+00  0.00000000e+00]
+ [ 0.00000000e+00  1.00000000e+00  5.66213743e-15]
+ [ 0.00000000e+00 -5.66213743e-15  1.00000000e+00]]
+
+Alignment error (||R - I||): 8.008e-15
+✔ Mesh successfully aligned with principal axes.
+===================================================
+
+Plot saved to: Data/67P/modified_shape_projection.png
+3D HTML plot saved to: Data/67P/modified_shape_3d.html
+Vertices saved to: Data/67P/modified_v.dat
+Faces saved to: Data/67P/modified_f.dat
