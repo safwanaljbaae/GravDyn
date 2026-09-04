@@ -78,8 +78,8 @@ def principal_axes(mesh):
         a = eigenvectors[i]
         b = np.array([0, 0, 0])
         b[i] = 1
-        # Compute the cosine of the angle between the vectors
-        cos_angle = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+        # Compute the cosine of the angle between the vectors  # **** To be verified ****
+        cos_angle = abs(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
         # Convert the cosine to an angle in degrees
         angles.append(np.rad2deg(np.arccos(cos_angle)))
 

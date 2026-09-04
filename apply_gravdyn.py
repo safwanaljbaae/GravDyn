@@ -298,8 +298,8 @@ def main() -> None:
     vertices_file = "shape_v.dat"
     faces_file = "shape_f.dat"
 
-    # gravdyn.shape_verification(asteroid, mass, density, base_dir,
-    #                    vertices_file, faces_file)
+    gravdyn.shape_verification(asteroid, mass, density, base_dir,
+                       vertices_file, faces_file)
 
 
     file_path = Path(base_dir) / asteroid / "modified_v.dat"
