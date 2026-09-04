@@ -7,6 +7,7 @@ src/gravdyn/build_potential_derivatives.py
 src/gravdyn/constants.py
 src/gravdyn/generate_layered_mascons.py
 src/gravdyn/github_drive_service.py
+src/gravdyn/linea_drive_service.py
 src/gravdyn/plot_tools.py
 src/gravdyn/pot_functions.py
 src/gravdyn/prepare_polyhedral_model.py
@@ -29,6 +30,7 @@ tests/test_diagnose_mesh.py
 tests/test_generate_fortran_code.py
 tests/test_generate_layered_mascons.py
 tests/test_github_drive_service.py
+tests/test_linea_drive_service.py
 tests/test_load_tetrahedron_data.py
 tests/test_plot_tools.py
 tests/test_poly_files.py

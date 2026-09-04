@@ -130,17 +130,17 @@ class TestExistingDerivatives:
         assert result_derivs == []
 
 
-class TestGitHubFallback:
-    """When ``Pot_Expansion/`` is absent the code tries GitHub."""
+class TestLineaFallback:
+    """When ``Pot_Expansion/`` is absent the code tries the LInEA server."""
 
-    def test_github_failure_returns_empty(self, tmp_path, monkeypatch):
-        """If GitHub download fails, the function should return [], [].
+    def test_linea_failure_returns_empty(self, tmp_path, monkeypatch):
+        """If the LInEA download fails, the function should return [], [].
 
-        We mock the GitHub service calls to do nothing.
+        We mock the LInEA service calls to do nothing.
         """
-        monkeypatch.setattr(BPD_MODULE, "list_github_folder_files",
+        monkeypatch.setattr(BPD_MODULE, "list_linea_folder_files",
                             lambda *a, **kw: [])
-        monkeypatch.setattr(BPD_MODULE, "download_github_folder",
+        monkeypatch.setattr(BPD_MODULE, "download_linea_folder_files",
                             lambda *a, **kw: None)
 
         body = "NoData"

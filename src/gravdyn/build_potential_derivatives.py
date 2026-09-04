@@ -14,6 +14,7 @@ import pandas as pd
 import sympy as sym
 from pathlib import Path
 from typing import Callable, List, Tuple, Any
+from gravdyn.linea_drive_service import list_linea_folder_files, download_linea_folder_files
 from gravdyn.github_drive_service import list_github_folder_files, download_github_folder
 from gravdyn.constants import GRAVITATIONAL_CONSTANT
 
@@ -179,19 +180,32 @@ def build_potential_derivatives(
     if not folder.exists():
         print(
             f"No potential data found locally at '{folder}'.\n"
-            "We will check the GitHub repository of the package."
+            "We will check the LInEA public dataset server of the package."
         )
-        list_files = list_github_folder_files(
-            owner="safwanaljbaae",
-            repo="GravDyn",
-            path=f"Data/{name_central_body}/Pot_Expansion"
-        )
-        files = download_github_folder(
-            owner="safwanaljbaae",
-            repo="GravDyn",
-            path=f"Data/{name_central_body}/Pot_Expansion",
-            output_dir=f'{base_dir}/{name_central_body}/Pot_Expansion'
-        )
+        host_data = 'linea'
+        if host_data == 'github':
+            list_github_folder_files(
+                owner="safwanaljbaae",
+                repo="GravDyn",
+                path=f"Data/{name_central_body}/Pot_Expansion"
+            )
+            download_github_folder(
+                owner="safwanaljbaae",
+                repo="GravDyn",
+                path=f"Data/{name_central_body}/Pot_Expansion",
+                output_dir=f'{base_dir}/{name_central_body}/Pot_Expansion'
+            )
+
+        elif host_data == 'linea':
+            list_linea_folder_files(
+                path=f"{name_central_body}/Pot_Expansion"
+            )
+            download_linea_folder_files(
+                path=f"{name_central_body}/Pot_Expansion",
+                output_dir=f'{base_dir}/{name_central_body}/Pot_Expansion'
+            )
+        else:
+            raise NotImplementedError('please define either "github" or "linea"')
 
     data_root_path = Path(base_dir)
     body_dir = data_root_path / name_central_body

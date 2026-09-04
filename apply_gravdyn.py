@@ -274,13 +274,32 @@ def main() -> None:
     density = 1.75e0
     densities = [1.75e0 for _ in range(20)]
 
+    # asteroid = "Bennu"
+    # mass = 7.793e10
+    # density = 1.25e0
+    # densities = [1.25e0 for _ in range(20)]
+    #
+    asteroid = "Lutetia"
+    mass =1.68e18
+    density = 3.4e0
+    densities = [3.4e0 for _ in range(20)]
+    #
+    # asteroid = "Itokawa"
+    # mass =3.147e+10
+    # density = 1.673
+    # densities = [1.673 for _ in range(20)]
+    #
+    # asteroid = "Psyche"
+    # mass =2.293e+19
+    # density = 4.1959
+    # densities = [4.1959 for _ in range(20)]
 
     base_dir = 'Data/'
     vertices_file = "shape_v.dat"
     faces_file = "shape_f.dat"
 
-    gravdyn.shape_verification(asteroid, mass, density, base_dir,
-                       vertices_file, faces_file)
+    # gravdyn.shape_verification(asteroid, mass, density, base_dir,
+    #                    vertices_file, faces_file)
 
 
     file_path = Path(base_dir) / asteroid / "modified_v.dat"
@@ -303,6 +322,7 @@ def main() -> None:
         Z.ravel(),
     ])
 
+    print(mass*gravitation)
 
     # print('Point mass')
     # start = time.perf_counter()
