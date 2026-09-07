@@ -2,6 +2,7 @@ from __future__ import annotations
 import os
 import sys
 import trimesh
+import itertools
 import numpy as np
 from pathlib import Path
 from gravdyn.shape_tools import load_vertices, load_faces
@@ -91,6 +92,31 @@ def principal_axes(mesh):
     M_4x4 = np.eye(4)
     M_4x4[:3, :3] = T
 
+    V = eigenvectors.copy()  # columns = principal axes
+
+    # Choose the valid right-handed sign combination that stays closest
+    # to the original x, y, z directions.
+    best_score = -np.inf
+    best_V = None
+
+    for signs in itertools.product((-1, 1), repeat=3):
+        D = np.diag(signs)
+        candidate = V @ D
+
+        # Keep only proper rotations, not reflections
+        if np.linalg.det(candidate) <= 0:
+            continue
+
+        # Larger trace means better alignment with original x, y, z
+        score = np.trace(candidate)
+
+        if score > best_score:
+            best_score = score
+            best_V = candidate
+
+    M_4x4 = np.eye(4)
+    M_4x4[:3, :3] = best_V.T
+
     return eigenvectors, M_4x4, angles
 
 
@@ -141,14 +167,40 @@ def report_principal_axes(eigenvectors, new_eigenvectors, angles):
 
     # Check alignment quality
     identity = np.eye(3)
-    error = np.linalg.norm(new_eigenvectors - identity)
+    # error = np.linalg.norm(new_eigenvectors - identity)
+    #
+    # print("\nAlignment error (||R - I||): {:.3e}".format(error))
+    #
+    # if error < 1e-6:
+    #     print("Mesh successfully aligned with principal axes.")
+    # else:
+    #     print("Warning: alignment may be inaccurate.")
 
-    print("\nAlignment error (||R - I||): {:.3e}".format(error))
+    # v and -v are physically equivalent principal axes.
+    sign_invariant_error = np.linalg.norm(
+        np.abs(new_eigenvectors) - identity
+    )
 
-    if error < 1e-6:
+    # Optional: confirms the returned axes remain orthonormal.
+    orthogonality_error = np.linalg.norm(
+        new_eigenvectors.T @ new_eigenvectors - identity
+    )
+
+    print(
+        "\nSign-invariant alignment error "
+        "(||abs(R) - I||): {:.3e}".format(sign_invariant_error)
+    )
+    print(
+        "Orthogonality error (||RᵀR - I||): {:.3e}".format(
+            orthogonality_error
+        )
+    )
+
+    if sign_invariant_error < 1e-6:
         print("Mesh successfully aligned with principal axes.")
     else:
-        print("Warning: alignment may be inaccurate.")
+        print("Warning: principal axes may be misaligned.")
+
 
     print("===================================================\n")
 
