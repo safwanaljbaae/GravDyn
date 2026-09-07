@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gravdyn"
-version = "0.1.2"
+version = "0.1.3"
 description = "Python package for computing gravitational fields of irregular celestial bodies using point-mass, polyhedral, and expansion-based methods."
 readme = "README.md"
 requires-python = ">=3.9"

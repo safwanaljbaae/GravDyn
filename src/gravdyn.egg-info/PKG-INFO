@@ -26,6 +26,26 @@ It is designed for research in celestial mechanics, spacecraft dynamics, and ast
 
 ---
 
+## Version history
+
+### v0.1.3
+
+- Fixed the principal-axes mesh-alignment diagnostic. The validation now treats eigenvector sign changes correctly: a principal axis \(\mathbf{v}\) and \(-\mathbf{v}\) represent the same physical direction.
+- This prevents correctly aligned meshes from being incorrectly reported as  misaligned when the recomputed principal axes differ only by sign.
+- Moved the potential files required by the Expansion model from the GitHub repository to the [LINEA GravDyn dataset repository](https://datasets.linea.org.br/gravdyn/).
+
+### v0.1.2
+
+- Completed the core functions for gravitational-potential calculations across
+  the package models.
+
+### Earlier preliminary versions
+
+- Versions v0.1.0 and v0.1.1 were internal preliminary releases and are no longer available or supported.
+
+---
+
+
 ## Features
 
 - Mesh validation and preprocessing (centering, scaling, alignment)
